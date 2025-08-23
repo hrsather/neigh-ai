@@ -1,17 +1,9 @@
-from pathlib import Path
 from unittest.mock import patch
 
-from dash import Dash, html
-
-from neigh_ai.dashboard.pages.scorecard import Scorecard
-
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
+from dash import html
 
 
-def test_generate_scores():
-    # Arrange
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
-
+def test_generate_scores(scorecard):
     # Patch random.randint to return predictable scores
     with patch("random.randint", side_effect=[70, 80]):
         result = scorecard._generate_scores()

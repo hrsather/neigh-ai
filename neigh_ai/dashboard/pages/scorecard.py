@@ -1,22 +1,27 @@
 import random
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional, cast
 from urllib.parse import parse_qs
 
-import dash
 import plotly.express as px  # type: ignore[reportMissingTypeStubs]
-from dash import Input, Output, dcc, html
-from flask import send_from_directory
+from dash import (
+    Input,
+    Output,
+    callback,  # type: ignore[reportUnknownVariableType]
+    callback_context,
+    dash_table,
+    dcc,
+    html,
+    register_page,  # type: ignore[reportUnknownVariableType]
+)
 from rapidfuzz import process
+
+from neigh_ai.constants import IMAGES_FOLDER
 
 
 class Scorecard:
-    def __init__(self, images_folder: Path, app: dash.Dash):
-        self.images_folder: Path = images_folder
-        self.horse_names: list[str] = [p.stem for p in images_folder.glob("*.jpg")]
-        self.app = app
-        self.server = self.app.server
+    def __init__(self) -> None:
+        self.horse_names: list[str] = [p.stem for p in IMAGES_FOLDER.glob("*.jpg")]
 
         # If not present, return List of N/A
         # Will populate with real data
@@ -29,17 +34,9 @@ class Scorecard:
             },
         )
 
-        self._setup_routes()
-        self._setup_layout()
-        self._setup_callbacks()
-
-    def _setup_routes(self) -> None:
-        @self.server.route("/data/images/<path:filename>")
-        def serve_image(filename: str):  # type: ignore[reportUnusedFunction]
-            return send_from_directory(self.images_folder, filename)
-
-    def _setup_layout(self) -> None:
-        self.app.layout = html.Div([
+    @property
+    def layout(self) -> html.Div:
+        return html.Div([
             dcc.Location(id="url", refresh=True),
             html.H2("Search for a horse"),
             dcc.Dropdown(
@@ -52,59 +49,6 @@ class Scorecard:
             ),
             html.Div(id="page-content"),
         ])
-
-    def _setup_callbacks(self):  # noqa: C901
-        @self.app.callback(  # type: ignore[reportUnknownMemberType]
-            Output("search-dropdown", "options"),
-            Input("search-dropdown", "search_value"),
-        )
-        def update_options(search_value: Optional[str]) -> list[dict[str, str]]:  # type: ignore[reportUnusedFunction]
-            if not search_value:
-                return [{"label": n, "value": n} for n in self.horse_names]
-            return [
-                {"label": n, "value": n}
-                for n, _, _ in process.extract(search_value, self.horse_names, limit=10, score_cutoff=50)
-            ]
-
-        @self.app.callback(  # type: ignore[reportUnknownMemberType]
-            Output("search-dropdown", "value"),
-            Output("url", "search"),
-            Input("search-dropdown", "value"),
-            Input("url", "search"),
-            prevent_initial_call=False,
-        )
-        def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tuple[Optional[str], str]:  # type: ignore[reportUnusedFunction]
-            ctx = dash.callback_context
-            if not ctx.triggered:
-                return dropdown_value, url_search
-
-            prop_id = cast(str, ctx.triggered[0]["prop_id"])
-
-            if prop_id.startswith("search-dropdown"):
-                if dropdown_value:
-                    return dropdown_value, f"?name={dropdown_value}"
-                return None, ""
-
-            if prop_id.startswith("url"):
-                if not url_search:
-                    return None, ""
-                name = parse_qs(url_search.lstrip("?")).get("name", [None])[0]
-                if name in self.horse_names:
-                    return name, url_search
-                return None, url_search
-
-            return None, ""
-
-        @self.app.callback(Output("page-content", "children"), Input("url", "search"))  # type: ignore[reportUnknownMemberType]
-        def display_horse(search: str) -> html.Div:  # type: ignore[reportUnusedFunction]
-            if not search:
-                return html.Div([html.P("Type a horse name and select from dropdown.")])
-
-            name: Optional[str] = parse_qs(search.lstrip("?")).get("name", [None])[0]
-            if not name or name not in self.horse_names:
-                return html.Div([html.P("Horse not in database")])
-
-            return self._build_horse_page(name)
 
     def _score_color(self, val: int | float) -> str:
         if val < 60:
@@ -181,7 +125,7 @@ class Scorecard:
 
         return html.Div(
             style={"display": "flex", "flex-direction": "row", "align-items": "center", "gap": "40px"},
-            children=[dash.dcc.Graph(figure=fig)],
+            children=[dcc.Graph(figure=fig)],
         )
 
     def _races(self) -> html.Div:
@@ -191,7 +135,7 @@ class Scorecard:
             {"date": "2025-09-01", "place": "[Melbourne](https://example.com/melbourne)", "speed": "87"},
         ]
 
-        table = dash.dash_table.DataTable(  # type: ignore[assignment]
+        table = dash_table.DataTable(  # type: ignore[assignment]
             columns=[
                 {"name": "Date", "id": "date"},
                 {"name": "Place", "id": "place", "presentation": "markdown"},
@@ -215,7 +159,7 @@ class Scorecard:
             ],
         )
 
-    def _build_horse_page(self, name: str) -> html.Div:
+    def build_horse_page(self, name: str) -> html.Div:
         return html.Div(
             style={
                 "display": "flex",
@@ -254,3 +198,64 @@ class Scorecard:
                 ),
             ],
         )
+
+
+page = Scorecard()
+layout = page.layout
+
+
+@callback(  # type: ignore[reportUnknownMemberType]
+    Output("search-dropdown", "options"),
+    Input("search-dropdown", "search_value"),
+)
+def update_options(search_value: Optional[str]) -> list[dict[str, str]]:  # type: ignore[reportUnusedFunction]
+    if not search_value:
+        return [{"label": n, "value": n} for n in page.horse_names]
+    return [
+        {"label": n, "value": n}
+        for n, _, _ in process.extract(search_value, page.horse_names, limit=10, score_cutoff=50)
+    ]
+
+
+@callback(  # type: ignore[reportUnknownMemberType]
+    Output("search-dropdown", "value"),
+    Output("url", "search"),
+    Input("search-dropdown", "value"),
+    Input("url", "search"),
+    prevent_initial_call=False,
+)
+def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tuple[Optional[str], str]:  # type: ignore[reportUnusedFunction]
+    if not callback_context.triggered:
+        return dropdown_value, url_search
+
+    prop_id = cast(str, callback_context.triggered[0]["prop_id"])
+
+    if prop_id.startswith("search-dropdown"):
+        if dropdown_value:
+            return dropdown_value, f"?name={dropdown_value}"
+        return None, ""
+
+    if prop_id.startswith("url"):
+        if not url_search:
+            return None, ""
+        name = parse_qs(url_search.lstrip("?")).get("name", [None])[0]
+        if name in page.horse_names:
+            return name, url_search
+        return None, url_search
+
+    return None, ""
+
+
+@callback(Output("page-content", "children"), Input("url", "search"))  # type: ignore[reportUnknownMemberType]
+def display_horse(search: str) -> html.Div:  # type: ignore[reportUnusedFunction]
+    if not search:
+        return html.Div([html.P("Type a horse name and select from dropdown.")])
+
+    name: Optional[str] = parse_qs(search.lstrip("?")).get("name", [None])[0]
+    if not name or name not in page.horse_names:
+        return html.Div([html.P("Horse not in database")])
+
+    return page.build_horse_page(name)
+
+
+register_page(__name__)

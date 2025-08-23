@@ -1,14 +1,7 @@
-from pathlib import Path
-
-from dash import Dash, dcc, html
-
-from neigh_ai.dashboard.pages.scorecard import Scorecard
-
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
+from dash import dcc, html
 
 
-def test_performance_graph_structure():
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+def test_performance_graph_structure(scorecard):
     div = scorecard._performance_graph()
 
     # Top-level div
