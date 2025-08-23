@@ -1,20 +1,12 @@
-from pathlib import Path
 from unittest.mock import patch
 
 from dash import html
 
-from neigh_ai.dashboard.scorecard import Scorecard
 
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
-
-
-def test_generate_scores():
-    # Arrange
-    app = Scorecard(IMAGES_FOLDER)
-
+def test_generate_scores(scorecard):
     # Patch random.randint to return predictable scores
     with patch("random.randint", side_effect=[70, 80]):
-        result = app._generate_scores()
+        result = scorecard._generate_scores()
 
     # Assert top-level Div
     assert isinstance(result, html.Div)
@@ -27,15 +19,15 @@ def test_generate_scores():
     # Pedigree Score
     assert pedigree_div.children[0].children == "Pedigree Score"
     assert pedigree_div.children[1].children == "70"
-    assert pedigree_div.children[1].style["color"] == app._score_color(70)
+    assert pedigree_div.children[1].style["color"] == scorecard._score_color(70)
 
     # Vision Score
     assert vision_div.children[0].children == "Vision Score"
     assert vision_div.children[1].children == "80"
-    assert vision_div.children[1].style["color"] == app._score_color(80)
+    assert vision_div.children[1].style["color"] == scorecard._score_color(80)
 
     # Combined Score
     combined_value = 10 + (70 + 80) / 2
     assert combined_div.children[0].children == "Combined Score"
     assert combined_div.children[1].children == str(combined_value)
-    assert combined_div.children[1].style["color"] == app._score_color(combined_value)
+    assert combined_div.children[1].style["color"] == scorecard._score_color(combined_value)

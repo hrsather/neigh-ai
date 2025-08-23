@@ -1,15 +1,8 @@
-from pathlib import Path
-
 from dash import html
 
-from neigh_ai.dashboard.scorecard import Scorecard
 
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
-
-
-def test_performance_score_structure():
-    app = Scorecard(IMAGES_FOLDER)
-    div = app._performance_score()
+def test_performance_score_structure(scorecard):
+    div = scorecard._performance_score()
 
     # top-level should be a Div
     assert isinstance(div, html.Div)

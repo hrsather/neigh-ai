@@ -1,15 +1,8 @@
-from pathlib import Path
-
 from dash import dash_table, html
 
-from neigh_ai.dashboard.scorecard import Scorecard
 
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
-
-
-def test_races_table_structure():
-    app = Scorecard(IMAGES_FOLDER)
-    div = app._races()
+def test_races_table_structure(scorecard):
+    div = scorecard._races()
 
     # top-level is a Div
     assert isinstance(div, html.Div)
