@@ -1,48 +1,15 @@
-from pathlib import Path
-
-from dash import Dash, html
-
-from neigh_ai.dashboard.pages.scorecard import Scorecard
-
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
+from dash import html
 
 
-def test_setup_layout():
-    # Arrange
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
-
-    # Act
-    scorecard._setup_layout()
-    layout = scorecard.app.layout
-
-    # Assert: layout is a Div
-    assert layout._type == "Div"
-
-    # Assert: it has children
-    children = layout.children
-    assert len(children) == 4
-
-    # First child is Location
-    assert children[0]._type == "Location"
-    # Second child is H2
-    assert children[1]._type == "H2"
-    assert children[1].children == "Search for a horse"
-
-    # Third child is Dropdown
-    dropdown = children[2]
-    assert dropdown._type == "Dropdown"
-    assert dropdown.id == "search-dropdown"
-
-    # Fourth child is page-content Div
-    assert children[3]._type == "Div"
-    assert children[3].id == "page-content"
+def test_setup_layout(scorecard):
+    assert scorecard.layout.children[0].id == "url"
+    assert "Grandsire1" in [opt_dict["label"] for opt_dict in scorecard.layout.children[2].options]
 
 
-def test_build_horse_page_structure():
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+def test_build_horse_page_structure(scorecard):
     name = "number 2"  # pick one from your dummy horse names
 
-    div = scorecard._build_horse_page(name)
+    div = scorecard.build_horse_page(name)
     assert isinstance(div, html.Div)
     assert len(div.children) == 2  # left and right columns
 

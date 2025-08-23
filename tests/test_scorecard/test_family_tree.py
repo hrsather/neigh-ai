@@ -1,14 +1,10 @@
-from pathlib import Path
-
-from dash import Dash, html
+from dash import html
 
 from neigh_ai.dashboard.pages.scorecard import Scorecard
 
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
-
 
 def test_family_tree():
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    scorecard = Scorecard()
     horse_name = "number 2"
 
     # Act
@@ -37,7 +33,7 @@ def test_family_tree():
 
 
 def test_family_tree_dict():
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    scorecard = Scorecard()
 
     # Test known horse
     assert scorecard._family_tree_dict["number 2"] == ["Sire1", "Dam1"]

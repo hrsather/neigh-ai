@@ -1,14 +1,7 @@
-from pathlib import Path
-
-from dash import Dash, dash_table, html
-
-from neigh_ai.dashboard.pages.scorecard import Scorecard
-
-IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
+from dash import dash_table, html
 
 
-def test_races_table_structure():
-    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+def test_races_table_structure(scorecard):
     div = scorecard._races()
 
     # top-level is a Div
