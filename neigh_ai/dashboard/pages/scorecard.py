@@ -12,11 +12,10 @@ from rapidfuzz import process
 
 
 class Scorecard:
-    def __init__(self, images_folder: Path):
+    def __init__(self, images_folder: Path, app: dash.Dash):
         self.images_folder: Path = images_folder
         self.horse_names: list[str] = [p.stem for p in images_folder.glob("*.jpg")]
-
-        self.app = dash.Dash(__name__, suppress_callback_exceptions=True)
+        self.app = app
         self.server = self.app.server
 
         # If not present, return List of N/A
@@ -255,11 +254,3 @@ class Scorecard:
                 ),
             ],
         )
-
-    def run(self) -> None:
-        self.app.run(debug=True)  # type: ignore[reportUnknownMemberType]
-
-
-if __name__ == "__main__":
-    IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
-    Scorecard(IMAGES_FOLDER).run()

@@ -1,14 +1,16 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from neigh_ai.dashboard.scorecard import Scorecard
+from dash import Dash
+
+from neigh_ai.dashboard.pages.scorecard import Scorecard
 
 IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
 
 
 def test_sync_dropdown_no_trigger():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # No trigger scenario
@@ -19,8 +21,8 @@ def test_sync_dropdown_no_trigger():
 
 
 def test_sync_dropdown_trigger_dropdown_value():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # Dropdown triggered
@@ -31,8 +33,8 @@ def test_sync_dropdown_trigger_dropdown_value():
 
 
 def test_sync_dropdown_trigger_url():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # URL triggered
@@ -43,8 +45,8 @@ def test_sync_dropdown_trigger_url():
 
 
 def test_sync_dropdown_trigger_url_match():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # URL triggered
@@ -55,8 +57,8 @@ def test_sync_dropdown_trigger_url_match():
 
 
 def test_sync_dropdown_dropdown_empty():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # Patch callback_context to simulate dropdown trigger
@@ -69,8 +71,8 @@ def test_sync_dropdown_dropdown_empty():
 
 
 def test_sync_dropdown_unknown_trigger():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__  # get raw function
 
     fake_trigger = [{"prop_id": "some.other.input"}]  # not search-dropdown or url
@@ -85,8 +87,8 @@ def test_sync_dropdown_unknown_trigger():
 
 
 def test_sync_dropdown_trigger_url_none():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["..search-dropdown.value...url.search.."]["callback"]
     fn = cb.__wrapped__
 
     # Patch callback_context to simulate URL trigger

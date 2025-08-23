@@ -1,18 +1,18 @@
 from pathlib import Path
 
-from dash import html
+from dash import Dash, html
 
-from neigh_ai.dashboard.scorecard import Scorecard
+from neigh_ai.dashboard.pages.scorecard import Scorecard
 
 IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
 
 
 def test_family_tree():
-    app = Scorecard(IMAGES_FOLDER)
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
     horse_name = "number 2"
 
     # Act
-    tree_div = app._family_tree(horse_name)
+    tree_div = scorecard._family_tree(horse_name)
 
     # Assert top-level Div
     assert isinstance(tree_div, html.Div)
@@ -37,17 +37,17 @@ def test_family_tree():
 
 
 def test_family_tree_dict():
-    app = Scorecard(IMAGES_FOLDER)
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
 
     # Test known horse
-    assert app._family_tree_dict["number 2"] == ["Sire1", "Dam1"]
-    assert app._family_tree_dict["Sire1"] == ["Grandsire1", "Granddam1"]
-    assert app._family_tree_dict["Dam1"] == ["Grandsire2", "Granddam2"]
+    assert scorecard._family_tree_dict["number 2"] == ["Sire1", "Dam1"]
+    assert scorecard._family_tree_dict["Sire1"] == ["Grandsire1", "Granddam1"]
+    assert scorecard._family_tree_dict["Dam1"] == ["Grandsire2", "Granddam2"]
 
     # Test unknown horse returns default
-    assert app._family_tree_dict["UnknownHorse"] == ["N/A", "N/A"]
+    assert scorecard._family_tree_dict["UnknownHorse"] == ["N/A", "N/A"]
 
     # Optional: test that defaultdict is actually a defaultdict
     from collections import defaultdict
 
-    assert isinstance(app._family_tree_dict, defaultdict)
+    assert isinstance(scorecard._family_tree_dict, defaultdict)

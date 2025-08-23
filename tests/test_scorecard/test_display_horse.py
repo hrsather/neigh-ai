@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from dash import html
+from dash import Dash, html
 
-from neigh_ai.dashboard.scorecard import Scorecard
+from neigh_ai.dashboard.pages.scorecard import Scorecard
 
 IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
 
 
 def test_display_horse_empty_search():
-    app = Scorecard(IMAGES_FOLDER)
-    cb = app.app.callback_map["page-content.children"]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    cb = scorecard.app.callback_map["page-content.children"]["callback"]
     fn = cb.__wrapped__  # get the raw function
 
     result = fn("")  # empty search
@@ -18,9 +18,9 @@ def test_display_horse_empty_search():
 
 
 def test_display_horse_invalid_name():
-    app = Scorecard(IMAGES_FOLDER)
-    app.horse_names = ["Alpha", "Beta"]
-    cb = app.app.callback_map["page-content.children"]["callback"]
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    scorecard.horse_names = ["Alpha", "Beta"]
+    cb = scorecard.app.callback_map["page-content.children"]["callback"]
     fn = cb.__wrapped__  # raw function
 
     result = fn("?name=NotInDB")
@@ -29,11 +29,11 @@ def test_display_horse_invalid_name():
 
 
 def test_display_horse_valid_name():
-    app = Scorecard(IMAGES_FOLDER)
-    app.horse_names = ["Alpha"]
-    app._build_horse_page = lambda name: f"PAGE-{name}"  # stub
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
+    scorecard.horse_names = ["Alpha"]
+    scorecard._build_horse_page = lambda name: f"PAGE-{name}"  # stub
 
-    cb = app.app.callback_map["page-content.children"]["callback"]
+    cb = scorecard.app.callback_map["page-content.children"]["callback"]
     fn = cb.__wrapped__
 
     result = fn("?name=Alpha")

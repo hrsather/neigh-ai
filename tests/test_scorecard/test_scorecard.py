@@ -1,20 +1,19 @@
 from pathlib import Path
-from unittest.mock import patch
 
-from dash import html
+from dash import Dash, html
 
-from neigh_ai.dashboard.scorecard import Scorecard
+from neigh_ai.dashboard.pages.scorecard import Scorecard
 
 IMAGES_FOLDER = Path(__file__).parent.parent.parent / "data" / "images"
 
 
 def test_setup_layout():
     # Arrange
-    app = Scorecard(IMAGES_FOLDER)  # images_folder can be dummy for layout test
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
 
     # Act
-    app._setup_layout()
-    layout = app.app.layout
+    scorecard._setup_layout()
+    layout = scorecard.app.layout
 
     # Assert: layout is a Div
     assert layout._type == "Div"
@@ -40,10 +39,10 @@ def test_setup_layout():
 
 
 def test_build_horse_page_structure():
-    app = Scorecard(IMAGES_FOLDER)
+    scorecard = Scorecard(IMAGES_FOLDER, Dash(__name__, suppress_callback_exceptions=True))
     name = "number 2"  # pick one from your dummy horse names
 
-    div = app._build_horse_page(name)
+    div = scorecard._build_horse_page(name)
     assert isinstance(div, html.Div)
     assert len(div.children) == 2  # left and right columns
 
@@ -60,10 +59,3 @@ def test_build_horse_page_structure():
     assert isinstance(right_col, html.Div)
     right_children = right_col.children
     assert any(isinstance(c, html.Div) for c in right_children)  # performance graph/divs
-
-
-def test_run_calls_dash_run():
-    app = Scorecard(IMAGES_FOLDER)
-    with patch.object(app.app, "run") as mock_run:
-        app.run()
-        mock_run.assert_called_once_with(debug=True)
