@@ -1,10 +1,10 @@
-# neigh-i
+# neigh-ai
 
-[![Build status](https://img.shields.io/github/actions/workflow/status/hrsather/neigh-i/main.yml?branch=main)](https://github.com/hrsather/neigh-i/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/hrsather/neigh-i/branch/main/graph/badge.svg)](https://codecov.io/gh/hrsather/neigh-i)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/hrsather/neigh-i)](https://img.shields.io/github/commit-activity/m/hrsather/neigh-i)
+[![Build status](https://img.shields.io/github/actions/workflow/status/hrsather/neigh-ai/main.yml?branch=main)](https://github.com/hrsather/neigh-ai/actions/workflows/main.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/hrsather/neigh-ai/branch/main/graph/badge.svg)](https://codecov.io/gh/hrsather/neigh-ai)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/hrsather/neigh-ai)](https://img.shields.io/github/commit-activity/m/hrsather/neigh-ai)
 
-This repo helps buy winning horses
+This repo helps buy winning horses.
 
 Install the environment and the pre-commit hooks with
 

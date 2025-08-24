@@ -3,8 +3,8 @@ name = "neigh_ai"
 version = "0.0.1"
 description = "This repo helps buy winning horses"
 authors = ["Hayden Sather <hrsather@proton.me>"]
-repository = "https://github.com/hrsather/neigh-i"
-documentation = "https://hrsather.github.io/neigh-i/"
+repository = "https://github.com/hrsather/neigh-ai"
+documentation = "https://hrsather.github.io/neigh-ai/"
 readme = "README.md"
 packages = [
   {include = "neigh_ai"}
@@ -16,9 +16,10 @@ dash = "^3.2.0"
 rapidfuzz = "^3.13.0"
 plotly = {extras = ["express"], version = "^6.3.0"}
 pandas = "^2.3.2"
+pytest = "^8.4.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
+pytest = "^8.4.1"
 pytest-cov = "^4.0.0"
 pyright = "^1.1.382"
 pre-commit = "^3.4.0"
