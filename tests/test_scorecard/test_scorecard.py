@@ -7,7 +7,7 @@ def test_setup_layout(scorecard):
 
 
 def test_build_horse_page_structure(scorecard):
-    name = "number 2"  # pick one from your dummy horse names
+    name = "number 2"
 
     div = scorecard.build_horse_page(name)
     assert isinstance(div, html.Div)

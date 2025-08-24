@@ -1,0 +1,31 @@
+# Ignore git + CI/CD configs
+.git
+.github
+.gitignore
+.pre-commit-config.yaml
+codecov.yaml
+CONTRIBUTING.md
+
+# Python caches and virtual envs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv
+.pytest_cache
+.ruff_cache
+.tox
+.coverage
+coverage.xml
+
+# Local/dev stuff
+.DS_Store
+.Session.vim
+Makefile
+
+# Docker-related files
+Dockerfile
+docker-compose*.yml
+
+# Data that shouldn't be baked into the image
+data/

@@ -15,9 +15,24 @@ make install
 You are now ready to start development on your project!
 The CI/CD pipeline will be triggered when you open a pull request, merge to main, or when you create a new release.
 
-To finalize the set-up for publishing to PyPI or Artifactory, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/publishing/#set-up-for-pypi).
-For activating the automatic documentation with MkDocs, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/mkdocs/#enabling-the-documentation-on-github).
-To enable the code coverage reports, see [here](https://fpgmaas.github.io/cookiecutter-poetry/features/codecov/).
+To verify your code follows our formatting and types rules:
+
+```bash
+make check
+```
+
+To verify your tests pass:
+
+```bash
+make test
+```
+
+To run locally:
+
+```bash
+docker build -t dashboard .
+docker run  -p 8050:8050  -v $(pwd)/data:/code/data dashboard
+```
 
 ---
 
