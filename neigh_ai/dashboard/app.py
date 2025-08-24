@@ -1,7 +1,7 @@
 from dash import Dash, dcc, html, page_container
 from flask import send_from_directory
 
-from neigh_ai.constants import IMAGES_FOLDER
+from neigh_ai.constants import get_images_folder
 
 
 def create_app() -> Dash:
@@ -11,7 +11,7 @@ def create_app() -> Dash:
 
     @app.server.route("/data/images/<path:filename>")
     def serve_image(filename: str):
-        return send_from_directory(IMAGES_FOLDER, filename)
+        return send_from_directory(get_images_folder(), filename)
 
     return app
 
