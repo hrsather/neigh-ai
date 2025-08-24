@@ -1,40 +1,31 @@
 import random
-from collections import defaultdict
 from typing import Optional, cast
 from urllib.parse import parse_qs
 
-import plotly.express as px  # type: ignore[reportMissingTypeStubs]
+import plotly.express as px
 from dash import (
     Input,
     Output,
-    callback,  # type: ignore[reportUnknownVariableType]
+    callback,
     callback_context,
     dcc,
     html,
-    register_page,  # type: ignore[reportUnknownVariableType]
+    register_page,
 )
 from rapidfuzz import process
 
-from neigh_ai.constants import IMAGES_FOLDER
+from neigh_ai.feature_extraction.hip_sheet import get_family_tree, get_names
 
 
 class Scorecard:
     def __init__(self) -> None:
-        self.horse_names: list[str] = [p.stem for p in IMAGES_FOLDER.glob("*.jpg")]
+        self.horse_names: list[str] = get_names()
 
         # If not present, return List of N/A
         # Will populate with real data
-        self._family_tree_dict: dict[str, list[str]] = defaultdict(
-            lambda: ["N/A", "N/A"],
-            {
-                "number 2": ["Sire1", "Dam1"],
-                "Sire1": ["Grandsire1", "Granddam1"],
-                "Dam1": ["Grandsire2", "Granddam2"],
-            },
-        )
+        self._family_tree_dict: dict[str, dict[str, str]] = get_family_tree()
 
-    @property
-    def layout(self) -> html.Div:
+    def get_layout(self) -> html.Div:
         return html.Div([
             dcc.Location(id="url", refresh=True),
             html.H2("Search for a horse"),
@@ -81,14 +72,19 @@ class Scorecard:
 
     def _family_tree(self, horse_name: str) -> html.Div:
         def link(name: str, padding: str = "5px"):
-            if not name or name not in self.horse_names:
+            if not name:
                 return html.Div("N/A", style={"text-align": "center", "padding": padding})
+            if name not in self.horse_names:
+                return html.Div(name, style={"text-align": "center", "padding": padding})
             return html.Div(html.A(name, href=f"?name={name}"), style={"text-align": "center", "padding": padding})
 
         # Parents and grandparents
-        sire, dam = self._family_tree_dict[horse_name]
-        sire_parents = self._family_tree_dict[sire]
-        dam_parents = self._family_tree_dict[dam]
+        sire = self._family_tree_dict[horse_name]["sire"]
+        dam = self._family_tree_dict[horse_name]["dam"]
+        sire_sire = self._family_tree_dict[horse_name]["paternal_grandsire"]
+        sire_dam = self._family_tree_dict[horse_name]["paternal_granddam"]
+        dam_sire = self._family_tree_dict[horse_name]["maternal_grandsire"]
+        dam_dam = self._family_tree_dict[horse_name]["maternal_granddam"]
 
         horse_col = html.Div(style={"text-align": "center", "padding": "15px"}, children=[html.A(horse_name)])
         parents_col = html.Div(
@@ -97,7 +93,7 @@ class Scorecard:
         )
         grandparents_col = html.Div(
             style={"display": "flex", "flex-direction": "column", "justify-content": "space-around"},
-            children=[link(sire_parents[0]), link(sire_parents[1]), link(dam_parents[0]), link(dam_parents[1])],
+            children=[link(sire_sire), link(sire_dam), link(dam_sire), link(dam_dam)],
         )
         return html.Div(
             style={"display": "flex", "flex-direction": "row", "align-items": "center", "gap": "40px"},
@@ -111,7 +107,7 @@ class Scorecard:
             speeds.append(speeds[-1] - random.randint(5, 15))
         races = ["Kentucky", "Belmont", "Melbourne", "Dubai", "Grand National"]
 
-        fig = px.line(  # type: ignore[assignment]
+        fig = px.line(
             x=distances,
             y=speeds,
             markers=True,
@@ -119,8 +115,8 @@ class Scorecard:
             title="Speed Chart",
             text=races,
         )
-        fig.update_traces(line={"color": "royalblue", "width": 3}, textposition="top center")  # type: ignore[reportUnknownMemberType]
-        fig.update_layout(yaxis_range=[0, 90])  # type: ignore[reportUnknownMemberType]
+        fig.update_traces(line={"color": "royalblue", "width": 3}, textposition="top center")
+        fig.update_layout(yaxis_range=[0, 90])
 
         return html.Div(
             style={"display": "flex", "flex-direction": "row", "align-items": "center", "gap": "40px"},
@@ -216,14 +212,14 @@ class Scorecard:
 
 
 page = Scorecard()
-layout = page.layout
+layout = page.get_layout()
 
 
-@callback(  # type: ignore[reportUnknownMemberType]
+@callback(
     Output("search-dropdown", "options"),
     Input("search-dropdown", "search_value"),
 )
-def update_options(search_value: Optional[str]) -> list[dict[str, str]]:  # type: ignore[reportUnusedFunction]
+def update_options(search_value: Optional[str]) -> list[dict[str, str]]:
     if not search_value:
         return [{"label": n, "value": n} for n in page.horse_names]
     return [
@@ -232,14 +228,14 @@ def update_options(search_value: Optional[str]) -> list[dict[str, str]]:  # type
     ]
 
 
-@callback(  # type: ignore[reportUnknownMemberType]
+@callback(
     Output("search-dropdown", "value"),
     Output("url", "search"),
     Input("search-dropdown", "value"),
     Input("url", "search"),
     prevent_initial_call=False,
 )
-def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tuple[Optional[str], str]:  # type: ignore[reportUnusedFunction]
+def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tuple[Optional[str], str]:
     if not callback_context.triggered:
         return dropdown_value, url_search
 
@@ -261,8 +257,8 @@ def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tup
     return None, ""
 
 
-@callback(Output("page-content", "children"), Input("url", "search"))  # type: ignore[reportUnknownMemberType]
-def display_horse(search: str) -> html.Div:  # type: ignore[reportUnusedFunction]
+@callback(Output("page-content", "children"), Input("url", "search"))
+def display_horse(search: str) -> html.Div:
     if not search:
         return html.Div([html.P("Type a horse name and select from dropdown.")])
 

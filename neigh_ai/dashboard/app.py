@@ -10,7 +10,7 @@ def create_app() -> Dash:
     app.layout = html.Div([dcc.Location(id="url"), page_container])
 
     @app.server.route("/data/images/<path:filename>")
-    def serve_image(filename: str):  # type: ignore[reportUnusedFunction]
+    def serve_image(filename: str):
         return send_from_directory(IMAGES_FOLDER, filename)
 
     return app
@@ -18,4 +18,4 @@ def create_app() -> Dash:
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", port=8050, debug=True)  # type: ignore[reportUnknownMemberType]
+    app.run(host="0.0.0.0", port=8050, debug=True)
