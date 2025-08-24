@@ -1,6 +1,6 @@
 import random
 
-from dash import dcc, html, register_page  # type: ignore[reportUnknownVariableType]
+from dash import dcc, html, register_page
 
 
 class RaceResults:
