@@ -9,11 +9,7 @@ from neigh_ai.constants import get_hip_sheet_path
 def get_df() -> pd.DataFrame:
     df: pd.DataFrame = pd.read_csv(get_hip_sheet_path())
 
-    # Drop rows where there are name duplicates
-    unique_names = df["name"].value_counts()
-    unique_names = list(unique_names[unique_names == 1].index)  # type: ignore[reportAttributeAccessIssue]
-    df = pd.DataFrame(df[df["name"].isin(unique_names)])
-
+    df = df[~df["name"].duplicated(keep=False)]  # type: ignore[reportAttributeAccessIssue]
     return df
 
 
