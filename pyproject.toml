@@ -1,11 +1,11 @@
 [project]
-version = "0.0.1"
-description = "This repo helps buy winning horses"
+name = "neigh_ai"
 readme = "README.md"
-requires-python = ">=3.12,<3.14"
 authors = [
   { name = "Hayden Sather", email = "hrsather@proton.me" }
 ]
+description = "This repo helps buy winning horses"
+requires-python = ">=3.12,<3.14"
 urls = { repository = "https://github.com/hrsather/neigh-ai", documentation = "https://hrsather.github.io/neigh-ai/" }
 dependencies = [
   "dash>=3.2.0,<4.0.0",
@@ -13,6 +13,7 @@ dependencies = [
   "plotly[express]>=6.3.0,<7.0.0",
   "pandas>=2.3.2,<3.0.0"
 ]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
@@ -24,7 +25,7 @@ dev = [
 ]
 
 [tool.poetry]
-name = "neigh_ai"
+version = "0.0.1"
 packages = [{ include = "neigh_ai" }]
 
 [build-system]
