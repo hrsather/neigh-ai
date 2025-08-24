@@ -1,5 +1,4 @@
 [project]
-name = "neigh_ai"
 version = "0.0.1"
 description = "This repo helps buy winning horses"
 readme = "README.md"
@@ -25,6 +24,7 @@ dev = [
 ]
 
 [tool.poetry]
+name = "neigh_ai"
 packages = [{ include = "neigh_ai" }]
 
 [build-system]
