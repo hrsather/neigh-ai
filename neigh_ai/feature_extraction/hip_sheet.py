@@ -1,4 +1,5 @@
 from collections import defaultdict
+from functools import cache
 from typing import Optional
 
 import pandas as pd
@@ -6,6 +7,7 @@ import pandas as pd
 from neigh_ai.constants import get_hip_sheet_path
 
 
+@cache
 def get_df() -> pd.DataFrame:
     df: pd.DataFrame = pd.read_csv(get_hip_sheet_path())
 
@@ -17,6 +19,7 @@ def get_df() -> pd.DataFrame:
     return df
 
 
+@cache
 def get_family_tree() -> dict[str, dict[str, str]]:
     df = get_df()
     tree_df: pd.DataFrame = df[
@@ -74,5 +77,6 @@ def get_family_tree() -> dict[str, dict[str, str]]:
     return tree
 
 
+@cache
 def get_names() -> list[str]:
     return list(get_df()["name"])
