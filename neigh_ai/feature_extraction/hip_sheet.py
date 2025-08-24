@@ -3,11 +3,11 @@ from typing import Optional
 
 import pandas as pd
 
-from neigh_ai.constants import HIP_SHEET_PATH
+from neigh_ai.constants import get_hip_sheet_path
 
 
 def get_df() -> pd.DataFrame:
-    df: pd.DataFrame = pd.read_csv(HIP_SHEET_PATH)
+    df: pd.DataFrame = pd.read_csv(get_hip_sheet_path())
 
     # Drop rows where there are name duplicates
     unique_names = df["name"].value_counts()

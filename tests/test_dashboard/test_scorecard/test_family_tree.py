@@ -32,18 +32,27 @@ def test_family_tree():
     assert all(isinstance(c, html.Div) for c in grandparents_col.children)
 
 
-# def test_family_tree_dict():
-#     scorecard = Scorecard()
-#
-#     # Test known horse
-#     assert scorecard._family_tree_dict["number 2"] == ["Sire1", "Dam1"]
-#     assert scorecard._family_tree_dict["Sire1"] == ["Grandsire1", "Granddam1"]
-#     assert scorecard._family_tree_dict["Dam1"] == ["Grandsire2", "Granddam2"]
-#
-#     # Test unknown horse returns default
-#     assert scorecard._family_tree_dict["UnknownHorse"] == ["N/A", "N/A"]
-#
-#     # Optional: test that defaultdict is actually a defaultdict
-#     from collections import defaultdict
-#
-#     assert isinstance(scorecard._family_tree_dict, defaultdict)
+def test_family_tree_dict():
+    scorecard = Scorecard()
+    tree = scorecard._family_tree_dict
+
+    # Known horses
+    assert tree["Thunder Gulch"]["sire"] == "Hennessy"
+    assert tree["Thunder Gulch"]["dam"] == "Personal Lady"
+
+    assert tree["Hennessy"]["sire"] == "Storm Cat"
+    assert tree["Hennessy"]["dam"] == "N/A"
+
+    assert tree["Personal Lady"]["sire"] == "Smart Strike"
+    assert tree["Personal Lady"]["dam"] == "Randie's Legend"
+
+    assert tree["Randie's Legend"]["sire"] == "Benchmark"
+    assert tree["Randie's Legend"]["dam"] == "N/A"
+
+    # Grandparents should also be resolved
+    assert tree["Thunder Gulch"]["paternal_grandsire"] == "Storm Cat"
+    assert tree["Thunder Gulch"]["maternal_grandsire"] == "Smart Strike"
+
+    # Missing / unknown horses fallback to N/A
+    assert tree["UnknownHorse"]["sire"] == "N/A"
+    assert tree["UnknownHorse"]["dam"] == "N/A"
