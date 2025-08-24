@@ -1,37 +1,37 @@
-[tool.poetry]
+[project]
 name = "neigh_ai"
 version = "0.0.1"
 description = "This repo helps buy winning horses"
-authors = ["Hayden Sather <hrsather@proton.me>"]
-repository = "https://github.com/hrsather/neigh-ai"
-documentation = "https://hrsather.github.io/neigh-ai/"
 readme = "README.md"
-packages = [
-  {include = "neigh_ai"}
+requires-python = ">=3.12,<3.14"
+authors = [
+  { name = "Hayden Sather", email = "hrsather@proton.me" }
+]
+urls = { repository = "https://github.com/hrsather/neigh-ai", documentation = "https://hrsather.github.io/neigh-ai/" }
+
+dependencies = [
+  "dash>=3.2.0,<4.0.0",
+  "rapidfuzz>=3.13.0,<4.0.0",
+  "plotly[express]>=6.3.0,<7.0.0",
+  "pandas>=2.3.2,<3.0.0"
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.12,<3.14"
-dash = "^3.2.0"
-rapidfuzz = "^3.13.0"
-plotly = {extras = ["express"], version = "^6.3.0"}
-pandas = "^2.3.2"
-pytest = "^8.4.1"
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.2.0,<8.0.0",
+  "pytest-cov>=4.0.0,<5.0.0",
+  "pyright>=1.1.382,<2.0.0",
+  "pre-commit>=3.4.0,<4.0.0",
+  "tox>=4.11.1,<5.0.0"
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-pytest-cov = "^4.0.0"
-pyright = "^1.1.382"
-pre-commit = "^3.4.0"
-tox = "^4.11.1"
-
-
+[tool.poetry]
+# only for packaging specifics; everything else uses [project]
+packages = [{ include = "neigh_ai" }]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.8.0"]
 build-backend = "poetry.core.masonry.api"
-
-
 
 [tool.pyright]
 include = ["neigh_ai"]
@@ -46,43 +46,14 @@ testpaths = ["tests"]
 target-version = "py39"
 line-length = 120
 fix = true
+
 [tool.ruff.lint]
 select = [
-    # flake8-2020
-    "YTT",
-    # flake8-bugbear
-    "B",
-    # flake8-builtins
-    "A",
-    # flake8-comprehensions
-    "C4",
-    # flake8-debugger
-    "T10",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # mccabe
-    "C90",
-    # pycodestyle
-    "E", "W",
-    # pyflakes
-    "F",
-    # pygrep-hooks
-    "PGH",
-    # pyupgrade
-    "UP",
-    # ruff
-    "RUF",
-    # tryceratops
-    "TRY",
+  "YTT", "B", "A", "C4", "T10", "SIM", "I", "C90",
+  "E", "W", "F", "PGH", "UP", "RUF", "TRY"
 ]
-ignore = [
-    # LineTooLong
-    "E501",
-    # DoNotAssignLambda
-    "E731",
-]
+ignore = ["E501", "E731"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
 
