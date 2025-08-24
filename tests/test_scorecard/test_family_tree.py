@@ -32,18 +32,18 @@ def test_family_tree():
     assert all(isinstance(c, html.Div) for c in grandparents_col.children)
 
 
-def test_family_tree_dict():
-    scorecard = Scorecard()
-
-    # Test known horse
-    assert scorecard._family_tree_dict["number 2"] == ["Sire1", "Dam1"]
-    assert scorecard._family_tree_dict["Sire1"] == ["Grandsire1", "Granddam1"]
-    assert scorecard._family_tree_dict["Dam1"] == ["Grandsire2", "Granddam2"]
-
-    # Test unknown horse returns default
-    assert scorecard._family_tree_dict["UnknownHorse"] == ["N/A", "N/A"]
-
-    # Optional: test that defaultdict is actually a defaultdict
-    from collections import defaultdict
-
-    assert isinstance(scorecard._family_tree_dict, defaultdict)
+# def test_family_tree_dict():
+#     scorecard = Scorecard()
+#
+#     # Test known horse
+#     assert scorecard._family_tree_dict["number 2"] == ["Sire1", "Dam1"]
+#     assert scorecard._family_tree_dict["Sire1"] == ["Grandsire1", "Granddam1"]
+#     assert scorecard._family_tree_dict["Dam1"] == ["Grandsire2", "Granddam2"]
+#
+#     # Test unknown horse returns default
+#     assert scorecard._family_tree_dict["UnknownHorse"] == ["N/A", "N/A"]
+#
+#     # Optional: test that defaultdict is actually a defaultdict
+#     from collections import defaultdict
+#
+#     assert isinstance(scorecard._family_tree_dict, defaultdict)

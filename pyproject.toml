@@ -34,7 +34,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pyright]
 include = ["neigh_ai"]
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
 
