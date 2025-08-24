@@ -1,4 +1,4 @@
-from dash import dash_table, html
+from dash import html
 
 
 def test_races_table_structure(scorecard):
@@ -7,23 +7,18 @@ def test_races_table_structure(scorecard):
     # top-level is a Div
     assert isinstance(div, html.Div)
 
-    # should have one child (the DataTable)
+    # should have one child (the HTML table)
     children = div.children
     assert len(children) == 1
     table = children[0]
-    assert isinstance(table, dash_table.DataTable)
+    assert isinstance(table, html.Table)
 
-    # check columns
+    # table should have a header row + 3 data rows
+    rows = table.children
+    assert len(rows) == 4  # 1 header + 3 rows
+
+    header = rows[0]
+    assert isinstance(header, html.Tr)
+    header_cells = header.children
     expected_columns = ["Date", "Place", "Speed"]
-    table_columns = [col["name"] for col in table.columns]
-    assert table_columns == expected_columns
-
-    # check data
-    data = table.data
-    assert isinstance(data, list)
-    assert all("date" in row and "place" in row and "speed" in row for row in data)
-    assert len(data) == 3
-
-    # check markdown presentation on 'place'
-    place_col = next(col for col in table.columns if col["id"] == "place")
-    assert place_col.get("presentation") == "markdown"
+    assert [cell.children for cell in header_cells] == expected_columns
