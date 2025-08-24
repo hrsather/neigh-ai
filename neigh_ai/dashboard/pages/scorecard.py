@@ -9,7 +9,6 @@ from dash import (
     Output,
     callback,  # type: ignore[reportUnknownVariableType]
     callback_context,
-    dash_table,
     dcc,
     html,
     register_page,  # type: ignore[reportUnknownVariableType]
@@ -129,21 +128,37 @@ class Scorecard:
         )
 
     def _races(self) -> html.Div:
-        last_races: list[dict[str, str]] = [
-            {"date": "2025-08-01", "place": "[Kentucky](https://example.com/kentucky)", "speed": "85"},
-            {"date": "2025-08-15", "place": "[Belmont](https://example.com/belmont)", "speed": "82"},
-            {"date": "2025-09-01", "place": "[Melbourne](https://example.com/melbourne)", "speed": "87"},
+        last_races = [
+            {"date": "2025-08-01", "place": "Kentucky", "speed": "85"},
+            {"date": "2025-08-15", "place": "Belmont", "speed": "82"},
+            {"date": "2025-09-01", "place": "Melbourne", "speed": "87"},
         ]
 
-        table = dash_table.DataTable(  # type: ignore[assignment]
-            columns=[
-                {"name": "Date", "id": "date"},
-                {"name": "Place", "id": "place", "presentation": "markdown"},
-                {"name": "Speed", "id": "speed"},
+        table = html.Table(
+            # Header
+            [
+                html.Tr([
+                    html.Th("Date", style={"padding": "12px", "fontSize": "22px", "textAlign": "center"}),
+                    html.Th("Place", style={"padding": "12px", "fontSize": "22px", "textAlign": "center"}),
+                    html.Th("Speed", style={"padding": "12px", "fontSize": "22px", "textAlign": "center"}),
+                ])
+            ]
+            +
+            # Body
+            [
+                html.Tr([
+                    html.Td(r["date"], style={"padding": "10px", "textAlign": "center"}),
+                    html.Td(
+                        dcc.Link(r["place"], href="/race"),  # all links point to /race
+                        style={"padding": "10px", "textAlign": "center"},
+                    ),
+                    html.Td(r["speed"], style={"padding": "10px", "textAlign": "center"}),
+                ])
+                for r in last_races
             ],
-            data=last_races,  # type: ignore[assignment]
-            style_table={"width": "400px"},
+            style={"border": "2px solid black", "borderCollapse": "collapse", "width": "100%", "fontSize": "20px"},
         )
+
         return html.Div(
             style={"display": "flex", "flex-direction": "row", "align-items": "center", "gap": "40px"},
             children=[table],
