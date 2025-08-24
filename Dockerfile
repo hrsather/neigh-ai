@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.9-slim-buster
+FROM python:3.13-slim-bookworm
 
-ENV POETRY_VERSION=1.4 \
+ENV POETRY_VERSION=2.1.4 \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry
@@ -10,12 +10,13 @@ RUN pip install "poetry==$POETRY_VERSION"
 
 # Copy only requirements to cache them in docker layer
 WORKDIR /code
-COPY poetry.lock pyproject.toml /code/
 
-# Project initialization:
-RUN poetry install --no-interaction --no-ansi --no-root --no-dev
+COPY . /code/
 
-# Copy Python code to the Docker image
-COPY neigh_ai /code/neigh_ai/
+# ENV PYTHONPATH=/code
 
-CMD [ "python", "neigh_ai/foo.py"]
+RUN poetry install --no-interaction --no-ansi
+
+EXPOSE 8050
+
+CMD [ "python", "neigh_ai/dashboard/app.py"]
