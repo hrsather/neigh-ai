@@ -26,7 +26,6 @@ class RaceModel:
         return max_points + 1 - np.minimum(pos, max_points + 1)
 
     def get_raw_df(self) -> pd.DataFrame:
-        # yearling_df = pd.read_csv("/Users/hayden/Downloads/vw_yearlings_202509011838.csv")
         return (
             pd.read_csv("/Users/hayden/Downloads/vw_race_results_202509011836.csv")
             .assign(
