@@ -10,6 +10,12 @@ from sklearn.metrics import mean_absolute_error
 
 
 class RaceModel:
+    def __init__(self) -> None:
+        self.raw_df = self._get_raw_df()
+        self.clean_df = self._get_clean_df()
+        self.impute_df, self.impute_func = self._get_imputes()
+        self.z_df = self._get_z_df()
+
     @classmethod
     def _parse_race_time(cls, val: str) -> pd.Timedelta | NaTType:
         try:
@@ -25,7 +31,7 @@ class RaceModel:
         # 1st=max_points, 2nd=max_points-1... 10th place=1. >10th=0
         return max_points + 1 - np.minimum(pos, max_points + 1)
 
-    def get_raw_df(self) -> pd.DataFrame:
+    def _get_raw_df(self) -> pd.DataFrame:
         return (
             pd.read_csv("/Users/hayden/Downloads/vw_race_results_202509011836.csv")
             .assign(
@@ -50,31 +56,28 @@ class RaceModel:
             .dropna(subset=["speed", "pattern"])
         )
 
-    @classmethod
-    def _get_imputes(cls, df: pd.DataFrame) -> tuple[pd.DataFrame, KNNImputer]:
+    def _get_imputes(self) -> tuple[pd.DataFrame, KNNImputer]:
         keep_cols: list[str] = ["yearling_id"]
-        impute_cols: list[str] = [col for col in df.columns if col not in keep_cols]
+        impute_cols: list[str] = [col for col in self.clean_df.columns if col not in keep_cols]
 
         knn_imputer = KNNImputer()
 
         imputed_values = pd.DataFrame(
-            knn_imputer.fit_transform(df[impute_cols]),
+            knn_imputer.fit_transform(self.clean_df[impute_cols]),
             columns=impute_cols,
-            index=df.index,  # keep exact row alignment
+            index=self.clean_df.index,  # keep exact row alignment
         )
 
-        imputed_df = pd.concat([df[keep_cols], imputed_values], axis=1)
+        imputed_df = pd.concat([self.clean_df[keep_cols], imputed_values], axis=1)
 
         return imputed_df, knn_imputer
 
-    def get_clean_df(self) -> pd.DataFrame:
-        raw_df = self.get_raw_df()
-
+    def _get_clean_df(self) -> pd.DataFrame:
         model = LinearRegression()
-        model.fit(raw_df["distance_meters"].to_numpy().reshape(-1, 1), raw_df["speed"].to_numpy())
+        model.fit(self.raw_df["distance_meters"].to_numpy().reshape(-1, 1), self.raw_df["speed"].to_numpy())
 
         return (
-            raw_df.assign(
+            self.raw_df.assign(
                 predicted_speed=lambda df: model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
@@ -92,9 +95,8 @@ class RaceModel:
             .drop(columns=["total_prize_money"])
         )
 
-    def get_z_df(self) -> pd.DataFrame:
-        clean_df = self.get_clean_df()
-        impute_df, _ = self._get_imputes(clean_df)
+    def _get_z_df(self) -> pd.DataFrame:
+        impute_df, _ = self._get_imputes()
         impute_df = impute_df.drop(columns=["yearling_id", "num_races"])
         z_df = impute_df.apply(zscore, ddof=0)
         shift = abs(z_df.min().min()) + 0.01  # small epsilon to avoid zero
@@ -102,17 +104,16 @@ class RaceModel:
         z_df["race_score"] = z_df.apply(hmean, axis=1)
         z_df = z_df - shift
 
-        z_df["yearling_id"] = clean_df["yearling_id"]
+        z_df["yearling_id"] = self.clean_df["yearling_id"]
 
         return z_df
 
 
 def main():
     race_model = RaceModel()
-    clean_df = race_model.get_clean_df()
-    raw_df = race_model.get_raw_df()
-
-    z_df = race_model.get_z_df()
+    clean_df = race_model.clean_df
+    raw_df = race_model.raw_df
+    z_df = race_model.z_df
 
     print(clean_df.drop(columns=["yearling_id", "num_races"]).corr())
     show_best_horses(z_df, clean_df, raw_df)
