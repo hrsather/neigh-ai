@@ -4,7 +4,6 @@ import pandas as pd
 from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.impute import KNNImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 
@@ -13,8 +12,8 @@ class RaceModel:
     def __init__(self) -> None:
         self.raw_df = self._get_raw_df()
         self.clean_df = self._get_clean_df()
-        self.impute_df, self.impute_func = self._get_imputes()
         self.z_df = self._get_z_df()
+        self.new_score = 0  # Avg Z score is zero
 
     @classmethod
     def _parse_race_time(cls, val: str) -> pd.Timedelta | NaTType:
@@ -56,21 +55,13 @@ class RaceModel:
             .dropna(subset=["speed", "pattern"])
         )
 
-    def _get_imputes(self) -> tuple[pd.DataFrame, KNNImputer]:
-        keep_cols: list[str] = ["yearling_id"]
-        impute_cols: list[str] = [col for col in self.clean_df.columns if col not in keep_cols]
+    def get_score_from_id(self, yearling_id: str) -> float:
+        yearling_df = self.z_df[self.z_df["yearling_id"] == str(yearling_id)]
+        if len(yearling_df) == 1:
+            return yearling_df.iloc[0]["race_score"]
 
-        knn_imputer = KNNImputer()
-
-        imputed_values = pd.DataFrame(
-            knn_imputer.fit_transform(self.clean_df[impute_cols]),
-            columns=impute_cols,
-            index=self.clean_df.index,  # keep exact row alignment
-        )
-
-        imputed_df = pd.concat([self.clean_df[keep_cols], imputed_values], axis=1)
-
-        return imputed_df, knn_imputer
+        # Drop non-feature cols
+        return self.new_score
 
     def _get_clean_df(self) -> pd.DataFrame:
         model = LinearRegression()
@@ -96,9 +87,11 @@ class RaceModel:
         )
 
     def _get_z_df(self) -> pd.DataFrame:
-        impute_df, _ = self._get_imputes()
-        impute_df = impute_df.drop(columns=["yearling_id", "num_races"])
-        z_df = impute_df.apply(zscore, ddof=0)
+        z_df = (
+            self.clean_df.fillna(self.clean_df.mean(numeric_only=True))
+            .drop(columns=["yearling_id", "num_races"])
+            .apply(zscore, ddof=0)
+        )
         shift = abs(z_df.min().min()) + 0.01  # small epsilon to avoid zero
         z_df = z_df + shift
         z_df["race_score"] = z_df.apply(hmean, axis=1)
@@ -117,7 +110,7 @@ def main():
 
     print(clean_df.drop(columns=["yearling_id", "num_races"]).corr())
     show_best_horses(z_df, clean_df, raw_df)
-    show_plot_xy(z_df)
+    # show_plot_xy(z_df)
     show_features_info(z_df)
 
 
@@ -131,7 +124,7 @@ def show_best_horses(z_df: pd.DataFrame, clean_df: pd.DataFrame, raw_df: pd.Data
                 continue
 
             yearling_value = yearling_df[column].iloc[0]
-            if not (yearling_value >= 0 or yearling_value < 0):  # nan. TODO: Improve
+            if np.isnan(yearling_value):
                 continue
 
             plot_hist(clean_df, column, yearling_value, yearling_id)
