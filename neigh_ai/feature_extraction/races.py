@@ -52,12 +52,11 @@ class RaceModel:
                 g2_finish=lambda df: np.where(df["pattern"] == 2, self._score_finish(df["finish_position"]), np.nan),
                 g3_finish=lambda df: np.where(df["pattern"] == 3, self._score_finish(df["finish_position"]), np.nan),
             )
-            .query("12 < speed < 19")
-            .query("going == 'Fast'")
-            .query("surface == 'Dirt'")
-            .query("7 <= distance_furlongs <= 13")
-            .pipe(lambda df: pd.concat([df, pd.get_dummies(df["going"], prefix="going")], axis=1))
-            .dropna(subset=["speed", "pattern"])
+            .dropna(subset=["speed"])
+            # .query("12 < speed < 19")
+            # .query("going == 'Fast'")
+            # .query("surface == 'Dirt'")
+            # .query("7 <= distance_furlongs <= 13")
         )
 
         # Train model once
