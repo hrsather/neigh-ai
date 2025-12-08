@@ -1,6 +1,8 @@
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 
 from neigh_ai.feature_extraction.races import RaceModel
@@ -9,40 +11,20 @@ from neigh_ai.feature_extraction.races import RaceModel
 def main() -> None:
     race_model = RaceModel()
 
-    recalculate = True
+    yearling_df = pd.read_csv("/Users/hayden/Downloads/vw_yearlings_202509011838.csv")
+    yearling_df["id"] = yearling_df["id"].astype(str)
+    name_to_id = defaultdict(int, zip(yearling_df["name"], yearling_df["id"]))
+    yearling_df["sire_id"] = yearling_df["sire"].map(name_to_id)
+    yearling_df["dam_id"] = yearling_df["dam"].map(name_to_id)
 
-    if recalculate:
-        yearling_df = pd.read_csv("/Users/hayden/Downloads/vw_yearlings_202509011838.csv")
-        yearling_df = (
-            yearling_df
-            # Merge sire id
-            .merge(
-                yearling_df[["id", "name"]].rename(columns={"id": "sire_id", "name": "sire_name"}),
-                left_on="sire",
-                right_on="sire_name",
-                how="left",
-            )
-            # Merge dam id
-            .merge(
-                yearling_df[["id", "name"]].rename(columns={"id": "dam_id", "name": "dam_name"}),
-                left_on="dam",
-                right_on="dam_name",
-                how="left",
-            )
-            # Assign scores using the RaceModel
-            .assign(
-                sire_score=lambda df: df["sire_id"].apply(lambda x: str(race_model.get_score_from_id(x))),
-                dam_score=lambda df: df["dam_id"].apply(lambda x: str(race_model.get_score_from_id(x))),
-                self_score=lambda df: df["id"].apply(lambda x: str(race_model.get_score_from_id(x))),
-            )
-        )
-        yearling_df.to_pickle("pickles/yearling_df.pkl")
-    else:
-        yearling_df = pd.read_pickle("pickles/yearling_df.pkl")
+    id_to_score = defaultdict(int, zip(race_model.z_df["yearling_id"], race_model.z_df["race_score"]))
+    yearling_df["sire_score"] = yearling_df["sire_id"].map(id_to_score)
+    yearling_df["dam_score"] = yearling_df["dam_id"].map(id_to_score)
+    yearling_df["self_score"] = yearling_df["id"].map(id_to_score)
 
-    print(yearling_df["sire_id"])
-    return
     print(len(yearling_df))
+    yearling_df = yearling_df[yearling_df["sire_score"] != 0]
+    yearling_df = yearling_df[yearling_df["dam_score"] != 0]
     yearling_df = yearling_df[yearling_df["self_score"] != 0]
     print(len(yearling_df))
 
@@ -51,12 +33,13 @@ def main() -> None:
     plt.scatter(yearling_df["sire_score"], yearling_df["self_score"])
     plt.show()
 
-    X = yearling_df[["dam_score", "sire_score"]].fillna(race_model.new_score)
+    X = yearling_df[["dam_score", "sire_score"]]
 
     y = yearling_df["self_score"]
 
     # model = RandomForestRegressor()
-    model = LinearRegression()
+    # model = LinearRegression()
+    model = RandomForestRegressor()
     model.fit(X, y)
 
     yearling_df["predicted_self_score"] = model.predict(X)

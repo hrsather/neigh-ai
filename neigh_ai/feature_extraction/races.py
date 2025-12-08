@@ -10,10 +10,14 @@ from sklearn.metrics import mean_absolute_error
 
 class RaceModel:
     def __init__(self) -> None:
-        self.raw_df = self._get_raw_df()
-        self.clean_df = self._get_clean_df()
-        self.z_df = self._get_z_df()
-        self.new_score = 0  # Avg Z score is zero
+        self.feature_cols: list[str] = [
+            "avg_speed_diff",
+            "avg_g1_finish",
+            "avg_g2_finish",
+            "avg_g3_finish",
+            "log_avg_prize_money",
+        ]
+        self._get_dfs()
 
     @classmethod
     def _parse_race_time(cls, val: str) -> pd.Timedelta | NaTType:
@@ -30,8 +34,8 @@ class RaceModel:
         # 1st=max_points, 2nd=max_points-1... 10th place=1. >10th=0
         return max_points + 1 - np.minimum(pos, max_points + 1)
 
-    def _get_raw_df(self) -> pd.DataFrame:
-        return (
+    def _get_dfs(self) -> None:
+        self.race_df: pd.DataFrame = (
             pd.read_csv("/Users/hayden/Downloads/vw_race_results_202509011836.csv")
             .assign(
                 yearling_id=lambda df: df["yearling_id"].astype(str),
@@ -48,101 +52,89 @@ class RaceModel:
                 g2_finish=lambda df: np.where(df["pattern"] == 2, self._score_finish(df["finish_position"]), np.nan),
                 g3_finish=lambda df: np.where(df["pattern"] == 3, self._score_finish(df["finish_position"]), np.nan),
             )
-            .query("14.5 < speed < 17.5")
+            .query("12 < speed < 19")
+            .query("going == 'Fast'")
             .query("surface == 'Dirt'")
-            .query("9 <= distance_furlongs <= 13")
+            .query("7 <= distance_furlongs <= 13")
             .pipe(lambda df: pd.concat([df, pd.get_dummies(df["going"], prefix="going")], axis=1))
             .dropna(subset=["speed", "pattern"])
         )
 
-    def get_score_from_id(self, yearling_id: str) -> float:
-        yearling_df = self.z_df[self.z_df["yearling_id"] == str(yearling_id)]
-        if len(yearling_df) == 1:
-            return yearling_df.iloc[0]["race_score"]
-
-        # Drop non-feature cols
-        return self.new_score
-
-    def _get_clean_df(self) -> pd.DataFrame:
+        # Train model once
         model = LinearRegression()
-        model.fit(self.raw_df["distance_meters"].to_numpy().reshape(-1, 1), self.raw_df["speed"].to_numpy())
+        model.fit(self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy())
 
-        return (
-            self.raw_df.assign(
+        self.horse_df: pd.DataFrame = (
+            self.race_df.assign(
                 predicted_speed=lambda df: model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
-            .groupby(["yearling_id"], as_index=False)
+            .groupby("yearling_id", as_index=False)
             .agg(
                 num_races=("yearling_id", "size"),
                 avg_speed_diff=("speed_diff", "mean"),
-                total_prize_money=("prize_money_numeric", "sum"),
+                total_prize_money=("prize_money", "sum"),
                 avg_g1_finish=("g1_finish", "mean"),
                 avg_g2_finish=("g2_finish", "mean"),
                 avg_g3_finish=("g3_finish", "mean"),
             )
             .query("1 < total_prize_money")
-            .assign(log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]))
-            .drop(columns=["total_prize_money"])
+            .assign(
+                log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
+                # Fills all na feature_cols with their mean
+                **{
+                    col: lambda d, col=col: d[col].fillna(int(d[col].mean(numeric_only=True)))
+                    for col in self.feature_cols
+                    if col != "log_avg_prize_money"
+                },
+                # Harmonic mean of feature_cols
+                race_score=lambda df: (
+                    df[self.feature_cols]
+                    .apply(zscore, ddof=0)
+                    .pipe(lambda z: z + abs(z.min().min()) + 0.01)
+                    .apply(hmean, axis=1)
+                    .pipe(lambda s: s - (abs(df[self.feature_cols].apply(zscore, ddof=0).min().min()) + 0.01))
+                ),
+            )
         )
-
-    def _get_z_df(self) -> pd.DataFrame:
-        z_df = (
-            self.clean_df.fillna(self.clean_df.mean(numeric_only=True))
-            .drop(columns=["yearling_id", "num_races"])
-            .apply(zscore, ddof=0)
-        )
-        shift = abs(z_df.min().min()) + 0.01  # small epsilon to avoid zero
-        z_df = z_df + shift
-        z_df["race_score"] = z_df.apply(hmean, axis=1)
-        z_df = z_df - shift
-
-        z_df["yearling_id"] = self.clean_df["yearling_id"]
-
-        return z_df
 
 
 def main():
     race_model = RaceModel()
-    clean_df = race_model.clean_df
-    raw_df = race_model.raw_df
-    z_df = race_model.z_df
 
-    print(clean_df.drop(columns=["yearling_id", "num_races"]).corr())
-    show_best_horses(z_df, clean_df, raw_df)
-    # show_plot_xy(z_df)
-    show_features_info(z_df)
+    # print(race_model.horse_df.drop(columns=["yearling_id", "num_races"]).corr())
+    # plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
+    # plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
+    # plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
+    # plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
+
+    show_best_horses(race_model.horse_df, race_model.race_df)
+
+    # show_features_info(race_model)
 
 
-def show_best_horses(z_df: pd.DataFrame, clean_df: pd.DataFrame, raw_df: pd.DataFrame) -> None:
-    for yearling_id in z_df.sort_values(by="race_score", ascending=False)["yearling_id"]:
-        yearling_df = clean_df[clean_df["yearling_id"] == yearling_id]
-        plot_id(df=raw_df, yearling_id=yearling_id)
+def show_best_horses(horse_df: pd.DataFrame, races_df: pd.DataFrame) -> None:
+    for yearling_id in horse_df.sort_values(by="race_score", ascending=False)["yearling_id"]:
+        plot_id(df=races_df, yearling_id=yearling_id)
 
-        for column in z_df.columns:
-            if column in ["yearling_id", "race_score"]:
+        for column in horse_df.columns:
+            if column in ["yearling_id", "num_races"]:
                 continue
 
-            yearling_value = yearling_df[column].iloc[0]
-            if np.isnan(yearling_value):
-                continue
-
-            plot_hist(clean_df, column, yearling_value, yearling_id)
+            plot_hist(horse_df, column, yearling_id)
 
 
-def show_features_info(z_df: pd.DataFrame) -> None:
-    for target_col in z_df.columns:
-        if target_col == "yearling_id":
-            continue
-
-        plt.hist(z_df[target_col], bins=50)
+def show_features_info(race_model: RaceModel) -> None:
+    cols = list(set(race_model.feature_cols) - {"race_score"})
+    df = race_model.horse_df[cols]
+    for target_col in cols:
+        plt.hist(df[target_col], bins=50)
         plt.title(target_col)
         plt.show()
 
-        X = z_df.drop(columns=[target_col])
-        y = z_df[target_col]
+        X = df.drop(columns=[target_col])
+        y = df[target_col]
 
-        print(target_col)
         model = RandomForestRegressor()
         model.fit(X, y)
         y_pred = model.predict(X)
@@ -152,16 +144,7 @@ def show_features_info(z_df: pd.DataFrame) -> None:
         print()
 
 
-def show_plot_xy(z_df: pd.DataFrame) -> None:
-    plot_xy("avg_speed_diff", "log_avg_prize_money", z_df)
-    plot_xy("avg_speed_diff", "avg_g1_finish", z_df)
-    plot_xy("avg_speed_diff", "avg_g2_finish", z_df)
-    plot_xy("log_avg_prize_money", "avg_g1_finish", z_df)
-    plot_xy("log_avg_prize_money", "avg_g2_finish", z_df)
-    plot_xy("log_avg_prize_money", "race_score", z_df)
-
-
-def plot_xy(x_col: str, y_col: str, df: pd.DataFrame) -> None:
+def plot_corr(x_col: str, y_col: str, df: pd.DataFrame) -> None:
     x = df[x_col]
     y = df[y_col]
     mask = np.isfinite(x) & np.isfinite(y)
@@ -210,10 +193,10 @@ def plot_power(x: np.ndarray, y: np.ndarray, show=False):
         plt.show()
 
 
-def plot_hist(df: pd.DataFrame, column: str, yearling_value: float, yearling_id: str) -> None:
+def plot_hist(df: pd.DataFrame, column: str, yearling_id: str) -> None:
     plt.hist(df[column], bins=50)
     plt.title(f"Yearling: {yearling_id} - {column}")
-    plt.axvline(x=yearling_value, color="red", linestyle="--", label="x = 0")
+    plt.axvline(x=df[df["yearling_id"] == yearling_id][column].item(), color="red", linestyle="--", label="x = 0")
     plt.show()
 
 
