@@ -7,7 +7,7 @@ from neigh_ai.constants import get_hip_sheet_path
 
 
 def get_df() -> pd.DataFrame:
-    df: pd.DataFrame = pd.read_csv(get_hip_sheet_path())
+    df: pd.DataFrame = pd.read_csv(get_hip_sheet_path(), low_memory=False)
 
     df = df[~df["name"].duplicated(keep=False)]  # type: ignore[reportAttributeAccessIssue]
     return df

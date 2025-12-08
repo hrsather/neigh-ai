@@ -1,4 +1,4 @@
-from neigh_ai.feature_extraction.power_curve import RaceModel
+from neigh_ai.feature_extraction.races import RaceModel
 
 
 def test_points() -> None:
