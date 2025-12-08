@@ -1,5 +1,5 @@
 import random
-from typing import Optional, cast
+from typing import cast
 from urllib.parse import parse_qs
 
 import plotly.express as px
@@ -219,7 +219,7 @@ layout = page.get_layout()
     Output("search-dropdown", "options"),
     Input("search-dropdown", "search_value"),
 )
-def update_options(search_value: Optional[str]) -> list[dict[str, str]]:
+def update_options(search_value: str | None) -> list[dict[str, str]]:
     if not search_value:
         return [{"label": n, "value": n} for n in page.horse_names]
     return [
@@ -235,7 +235,7 @@ def update_options(search_value: Optional[str]) -> list[dict[str, str]]:
     Input("url", "search"),
     prevent_initial_call=False,
 )
-def sync_dropdown_and_url(dropdown_value: Optional[str], url_search: str) -> tuple[Optional[str], str]:
+def sync_dropdown_and_url(dropdown_value: str | None, url_search: str) -> tuple[str | None, str]:
     if not callback_context.triggered:
         return dropdown_value, url_search
 
@@ -262,7 +262,7 @@ def display_horse(search: str) -> html.Div:
     if not search:
         return html.Div([html.P("Type a horse name and select from dropdown.")])
 
-    name: Optional[str] = parse_qs(search.lstrip("?")).get("name", [None])[0]
+    name: str | None = parse_qs(search.lstrip("?")).get("name", [None])[0]
     if not name or name not in page.horse_names:
         return html.Div([html.P("Horse not in database")])
 
