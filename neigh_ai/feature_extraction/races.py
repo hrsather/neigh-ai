@@ -98,20 +98,6 @@ class RaceModel:
         )
 
 
-def main():
-    race_model = RaceModel()
-
-    # print(race_model.horse_df.drop(columns=["yearling_id", "num_races"]).corr())
-    # plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
-    # plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
-    # plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
-    # plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
-
-    show_best_horses(race_model.horse_df, race_model.race_df)
-
-    # show_features_info(race_model)
-
-
 def show_best_horses(horse_df: pd.DataFrame, races_df: pd.DataFrame) -> None:
     for yearling_id in horse_df.sort_values(by="race_score", ascending=False)["yearling_id"]:
         plot_id(df=races_df, yearling_id=yearling_id)
@@ -172,7 +158,7 @@ def plot_id(df: pd.DataFrame, yearling_id: str) -> None:
     plt.show()
 
 
-def plot_power(x: np.ndarray, y: np.ndarray, show=False):
+def plot_power(x: pd.Series, y: pd.Series, show=False):
     model = LinearRegression()
     model.fit(x.to_numpy().reshape(-1, 1), y)
 
@@ -197,6 +183,20 @@ def plot_hist(df: pd.DataFrame, column: str, yearling_id: str) -> None:
     plt.title(f"Yearling: {yearling_id} - {column}")
     plt.axvline(x=df[df["yearling_id"] == yearling_id][column].item(), color="red", linestyle="--", label="x = 0")
     plt.show()
+
+
+def main():
+    race_model = RaceModel()
+
+    # print(race_model.horse_df.drop(columns=["yearling_id", "num_races"]).corr())
+    # plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
+    # plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
+    # plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
+    # plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
+
+    show_best_horses(race_model.horse_df, race_model.race_df)
+
+    # show_features_info(race_model)
 
 
 if __name__ == "__main__":
