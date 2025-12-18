@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -5,11 +7,13 @@ from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
 
 
 class RaceModel:
-    def __init__(self) -> None:
+    def __init__(self, race_results_path: Path) -> None:
+        self._race_results_path = race_results_path
         self.feature_cols: list[str] = [
             "avg_speed_diff",
             "avg_g1_finish",
@@ -36,9 +40,9 @@ class RaceModel:
 
     def _get_dfs(self) -> None:
         self.race_df: pd.DataFrame = (
-            pd.read_csv("/Users/hayden/Downloads/vw_race_results_202509011836.csv")
+            pd.read_csv(self._race_results_path)
             .assign(
-                yearling_id=lambda df: df["yearling_id"].astype(str),
+                horse_racing_api_id=lambda df: df["horse_racing_api_id"].astype(str),
                 distance_meters=lambda df: pd.to_numeric(df["distance_yards"] * 0.9144, errors="coerce"),
                 distance_furlongs=lambda df: pd.to_numeric(df["distance_yards"] / 220, errors="coerce"),
                 speed=lambda df: pd.to_numeric(
@@ -68,9 +72,9 @@ class RaceModel:
                 predicted_speed=lambda df: model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
-            .groupby("yearling_id", as_index=False)
+            .groupby("horse_racing_api_id", as_index=False)
             .agg(
-                num_races=("yearling_id", "size"),
+                num_races=("horse_racing_api_id", "size"),
                 avg_speed_diff=("speed_diff", "mean"),
                 total_prize_money=("prize_money", "sum"),
                 avg_g1_finish=("g1_finish", "mean"),
@@ -99,14 +103,14 @@ class RaceModel:
 
 
 def show_best_horses(horse_df: pd.DataFrame, races_df: pd.DataFrame) -> None:
-    for yearling_id in horse_df.sort_values(by="race_score", ascending=False)["yearling_id"]:
-        plot_id(df=races_df, yearling_id=yearling_id)
+    for horse_racing_api_id in horse_df.sort_values(by="race_score", ascending=False)["horse_racing_api_id"]:
+        plot_id(df=races_df, horse_racing_api_id=horse_racing_api_id)
 
         for column in horse_df.columns:
-            if column in ["yearling_id", "num_races"]:
+            if column in ["horse_racing_api_id", "num_races"]:
                 continue
 
-            plot_hist(horse_df, column, yearling_id)
+            plot_hist(horse_df, column, horse_racing_api_id)
 
 
 def show_features_info(race_model: RaceModel) -> None:
@@ -146,14 +150,14 @@ def plot_corr(x_col: str, y_col: str, df: pd.DataFrame) -> None:
     plt.show()
 
 
-def plot_id(df: pd.DataFrame, yearling_id: str) -> None:
-    yearling_races = df[df["yearling_id"] == yearling_id]
+def plot_id(df: pd.DataFrame, horse_racing_api_id: str) -> None:
+    yearling_races = df[df["horse_racing_api_id"] == horse_racing_api_id]
 
     plot_power(df["distance_meters"], df["speed"])
 
     plt.scatter(yearling_races["distance_meters"], yearling_races["speed"], color="red", label="Selected horse")
 
-    plt.title(f"Yearling: {yearling_id}")
+    plt.title(f"Yearling: {horse_racing_api_id}")
     plt.legend()
     plt.show()
 
@@ -178,25 +182,151 @@ def plot_power(x: pd.Series, y: pd.Series, show=False):
         plt.show()
 
 
-def plot_hist(df: pd.DataFrame, column: str, yearling_id: str) -> None:
+def plot_hist(df: pd.DataFrame, column: str, horse_racing_api_id: str) -> None:
     plt.hist(df[column], bins=50)
-    plt.title(f"Yearling: {yearling_id} - {column}")
-    plt.axvline(x=df[df["yearling_id"] == yearling_id][column].item(), color="red", linestyle="--", label="x = 0")
+    plt.title(f"Yearling: {horse_racing_api_id} - {column}")
+    plt.axvline(
+        x=df[df["horse_racing_api_id"] == horse_racing_api_id][column].item(),
+        color="red",
+        linestyle="--",
+        label="x = 0",
+    )
     plt.show()
 
 
+def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
+    horse_df = (
+        horse_df.merge(
+            pd.read_csv("/Users/hayden/Downloads/racing_api_horses_202512181100.csv")[
+                ["racing_api_id", "sire_id", "dam_id"]
+            ],
+            left_on="horse_racing_api_id",
+            right_on="racing_api_id",
+            how="left",
+        )
+        .assign(sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False))
+        .assign(dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False))
+    )
+    dam_lookup = horse_df.set_index("horse_racing_api_id")["dam_id"]
+    sire_lookup = horse_df.set_index("horse_racing_api_id")["sire_id"]
+    race_lookup = horse_df.set_index("horse_racing_api_id")["race_score"]
+
+    # Compute grandparent IDs
+    horse_df["damdam_id"] = horse_df["dam_id"].map(dam_lookup)
+    horse_df["siresire_id"] = horse_df["sire_id"].map(sire_lookup)
+    horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup)
+    horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup)
+
+    # Compute scores
+    horse_df["race_score_dam"] = horse_df["dam_id"].map(race_lookup)
+    horse_df["race_score_sire"] = horse_df["sire_id"].map(race_lookup)
+    horse_df["race_score_siredam"] = horse_df["siredam_id"].map(race_lookup)
+    horse_df["race_score_siresire"] = horse_df["siresire_id"].map(race_lookup)
+    horse_df["race_score_damdam"] = horse_df["damdam_id"].map(race_lookup)
+    horse_df["race_score_damsire"] = horse_df["damsire_id"].map(race_lookup)
+
+    horse_df["avg_dam_sibling_score"] = horse_df.groupby(["dam_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+    horse_df["avg_sire_sibling_score"] = horse_df.groupby(["sire_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+    horse_df["avg_damdam_cousin_score"] = horse_df.groupby(["damdam_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+    horse_df["avg_damsire_cousin_score"] = horse_df.groupby(["damsire_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+    horse_df["avg_siresire_cousin_score"] = horse_df.groupby(["siresire_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+    horse_df["avg_siredam_cousin_score"] = horse_df.groupby(["siredam_id"])["race_score"].transform(
+        lambda x: (x.sum() - x) / (len(x) - 1)
+    )
+
+    def max_excluding_self(x):
+        out = pd.Series(index=x.index, dtype=float)
+        for idx in x.index:
+            # drop current index
+            others = x.drop(idx)
+            out[idx] = others.max() if len(others) > 0 else 0
+        return out
+
+    horse_df["max_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_damdam_sibling_score"] = horse_df.groupby("damdam_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_damsire_sibling_score"] = horse_df.groupby("damsire_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_siresire_sibling_score"] = horse_df.groupby("siresire_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_siredam_sibling_score"] = horse_df.groupby("siredam_id")["race_score"].transform(max_excluding_self)
+
+    return horse_df
+
+
 def main():
-    race_model = RaceModel()
+    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
+    horse_df = race_model.horse_df
 
-    # print(race_model.horse_df.drop(columns=["yearling_id", "num_races"]).corr())
-    # plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
-    # plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
-    # plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
-    # plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
+    horse_df = add_damsire_info(horse_df)
+    assert horse_df is not None
 
-    show_best_horses(race_model.horse_df, race_model.race_df)
+    feature_cols = [
+        "race_score",
+        "race_score_dam",
+        "race_score_sire",
+        "race_score_siredam",
+        "race_score_siresire",
+        "race_score_damdam",
+        "race_score_damsire",
+        "avg_dam_sibling_score",
+        "avg_sire_sibling_score",
+        "avg_damdam_cousin_score",
+        "avg_damsire_cousin_score",
+        "avg_siresire_cousin_score",
+        "avg_siredam_cousin_score",
+        "max_sire_sibling_score",
+        "max_damdam_sibling_score",
+        "max_damsire_sibling_score",
+        "max_siresire_sibling_score",
+        "max_siredam_sibling_score",
+    ]
 
-    # show_features_info(race_model)
+    print(horse_df[feature_cols].corr())
+
+    feature_cols.remove("race_score")
+
+    X = horse_df[feature_cols].fillna(0)
+    y = horse_df["race_score"]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # RF
+    rf = RandomForestRegressor()
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
+    plt.xlabel("Actual Race Score")
+    plt.ylabel("Predicted Race Score")
+    plt.title("Random Forest Predictions vs Actual")
+    plt.grid(True)
+    plt.show()
+
+    mean_pred = np.full_like(y_test, y_train.mean())
+    me_mean = mean_squared_error(y_test, mean_pred)
+    me_model = mean_squared_error(y_test, y_pred)
+
+    print(f"MSE - Model: {me_model:.3f}, Mean baseline: {me_mean:.3f}")
+
+
+# print(race_model.horse_df.drop(columns=["horse_racing_api_id", "num_races"]).corr())
+# plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
+# plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
+# plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
+# plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
+#
+# show_best_horses(race_model.horse_df, race_model.race_df)
+
+# show_features_info(race_model)
 
 
 if __name__ == "__main__":
