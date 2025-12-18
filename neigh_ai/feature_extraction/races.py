@@ -217,6 +217,25 @@ def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
     horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup)
     horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup)
 
+    # Compute uncle/aunts scores
+    damdam_lookup = horse_df.groupby("damdam_id")["race_score"].apply(list)
+    damsire_lookup = horse_df.groupby("damsire_id")["race_score"].apply(list)
+    siresire_lookup = horse_df.groupby("siresire_id")["race_score"].apply(list)
+    siredam_lookup = horse_df.groupby("siredam_id")["race_score"].apply(list)
+
+    horse_df["avg_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
+        lambda x: sum(damdam_lookup.get(x, [0])) / max(len(damdam_lookup.get(x, [0])), 1)
+    )
+    horse_df["avg_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
+        lambda x: sum(damsire_lookup.get(x, [0])) / max(len(damsire_lookup.get(x, [0])), 1)
+    )
+    horse_df["avg_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
+        lambda x: sum(siresire_lookup.get(x, [0])) / max(len(siresire_lookup.get(x, [0])), 1)
+    )
+    horse_df["avg_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
+        lambda x: sum(siredam_lookup.get(x, [0])) / max(len(siredam_lookup.get(x, [0])), 1)
+    )
+
     # Compute scores
     horse_df["race_score_dam"] = horse_df["dam_id"].map(race_lookup)
     horse_df["race_score_sire"] = horse_df["sire_id"].map(race_lookup)
@@ -331,6 +350,10 @@ def main():
         "min_damsire_cousin_score",
         "min_siresire_cousin_score",
         "min_siredam_cousin_score",
+        "avg_damdam_auntuncle_score",
+        "avg_damsire_auntuncle_score",
+        "avg_siresire_auntuncle_score",
+        "avg_siredam_auntuncle_score",
     ]
 
     print(horse_df[feature_cols].corr())
@@ -346,13 +369,13 @@ def main():
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
 
-    # plt.figure(figsize=(8, 6))
-    # plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
-    # plt.xlabel("Actual Race Score")
-    # plt.ylabel("Predicted Race Score")
-    # plt.title("Random Forest Predictions vs Actual")
-    # plt.grid(True)
-    # plt.show()
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
+    plt.xlabel("Actual Race Score")
+    plt.ylabel("Predicted Race Score")
+    plt.title("Random Forest Predictions vs Actual")
+    plt.grid(True)
+    plt.show()
 
     mean_pred = np.full_like(y_test, y_train.mean())
     me_mean = mean_squared_error(y_test, mean_pred)
