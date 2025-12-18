@@ -252,12 +252,42 @@ def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
             out[idx] = others.max() if len(others) > 0 else 0
         return out
 
+    def std_excluding_self(x):
+        out = pd.Series(index=x.index, dtype=float)
+        for idx in x.index:
+            # drop current index
+            others = x.drop(idx)
+            out[idx] = others.std() if len(others) > 0 else 0
+        return out
+
+    def min_excluding_self(x):
+        out = pd.Series(index=x.index, dtype=float)
+        for idx in x.index:
+            # drop current index
+            others = x.drop(idx)
+            out[idx] = others.min() if len(others) > 0 else 0
+        return out
+
     horse_df["max_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(max_excluding_self)
     horse_df["max_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(max_excluding_self)
-    horse_df["max_damdam_sibling_score"] = horse_df.groupby("damdam_id")["race_score"].transform(max_excluding_self)
-    horse_df["max_damsire_sibling_score"] = horse_df.groupby("damsire_id")["race_score"].transform(max_excluding_self)
-    horse_df["max_siresire_sibling_score"] = horse_df.groupby("siresire_id")["race_score"].transform(max_excluding_self)
-    horse_df["max_siredam_sibling_score"] = horse_df.groupby("siredam_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(max_excluding_self)
+    horse_df["max_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(max_excluding_self)
+
+    horse_df["std_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(std_excluding_self)
+    horse_df["std_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(std_excluding_self)
+    horse_df["std_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(std_excluding_self)
+    horse_df["std_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(std_excluding_self)
+    horse_df["std_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(std_excluding_self)
+    horse_df["std_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(std_excluding_self)
+
+    horse_df["min_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(min_excluding_self)
+    horse_df["min_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(min_excluding_self)
+    horse_df["min_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(min_excluding_self)
+    horse_df["min_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(min_excluding_self)
+    horse_df["min_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(min_excluding_self)
+    horse_df["min_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(min_excluding_self)
 
     return horse_df
 
@@ -283,11 +313,24 @@ def main():
         "avg_damsire_cousin_score",
         "avg_siresire_cousin_score",
         "avg_siredam_cousin_score",
+        "max_dam_sibling_score",
         "max_sire_sibling_score",
-        "max_damdam_sibling_score",
-        "max_damsire_sibling_score",
-        "max_siresire_sibling_score",
-        "max_siredam_sibling_score",
+        "max_damdam_cousin_score",
+        "max_damsire_cousin_score",
+        "max_siresire_cousin_score",
+        "max_siredam_cousin_score",
+        "std_dam_sibling_score",
+        "std_sire_sibling_score",
+        "std_damdam_cousin_score",
+        "std_damsire_cousin_score",
+        "std_siresire_cousin_score",
+        "std_siredam_cousin_score",
+        "min_dam_sibling_score",
+        "min_sire_sibling_score",
+        "min_damdam_cousin_score",
+        "min_damsire_cousin_score",
+        "min_siresire_cousin_score",
+        "min_siredam_cousin_score",
     ]
 
     print(horse_df[feature_cols].corr())
@@ -303,13 +346,13 @@ def main():
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
 
-    plt.figure(figsize=(8, 6))
-    plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
-    plt.xlabel("Actual Race Score")
-    plt.ylabel("Predicted Race Score")
-    plt.title("Random Forest Predictions vs Actual")
-    plt.grid(True)
-    plt.show()
+    # plt.figure(figsize=(8, 6))
+    # plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
+    # plt.xlabel("Actual Race Score")
+    # plt.ylabel("Predicted Race Score")
+    # plt.title("Random Forest Predictions vs Actual")
+    # plt.grid(True)
+    # plt.show()
 
     mean_pred = np.full_like(y_test, y_train.mean())
     me_mean = mean_squared_error(y_test, mean_pred)
