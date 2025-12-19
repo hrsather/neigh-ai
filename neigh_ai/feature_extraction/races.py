@@ -217,6 +217,15 @@ def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
     horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup)
     horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup)
 
+    horse_df["siresiresire_id"] = horse_df["siresire_id"].map(sire_lookup)
+    horse_df["siresiredam_id"] = horse_df["siresire_id"].map(dam_lookup)
+    horse_df["siredamsire_id"] = horse_df["siredam_id"].map(sire_lookup)
+    horse_df["siredamdam_id"] = horse_df["siredam_id"].map(dam_lookup)
+    horse_df["damsiresire_id"] = horse_df["damsire_id"].map(sire_lookup)
+    horse_df["damsiredam_id"] = horse_df["damsire_id"].map(dam_lookup)
+    horse_df["damdamsire_id"] = horse_df["damdam_id"].map(sire_lookup)
+    horse_df["damdamdam_id"] = horse_df["damdam_id"].map(dam_lookup)
+
     # Compute uncle/aunts scores
     damdam_lookup = horse_df.groupby("damdam_id")["race_score"].apply(list)
     damsire_lookup = horse_df.groupby("damsire_id")["race_score"].apply(list)
@@ -224,36 +233,55 @@ def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
     siredam_lookup = horse_df.groupby("siredam_id")["race_score"].apply(list)
 
     horse_df["avg_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-        lambda x: sum(damdam_lookup.get(x, [0])) / max(len(damdam_lookup.get(x, [0])), 1)
+        lambda x: np.nan if x not in damdam_lookup else np.mean(damdam_lookup[x])
     )
     horse_df["avg_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-        lambda x: sum(damsire_lookup.get(x, [0])) / max(len(damsire_lookup.get(x, [0])), 1)
+        lambda x: np.nan if x not in damsire_lookup else np.mean(damsire_lookup[x])
     )
     horse_df["avg_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-        lambda x: sum(siresire_lookup.get(x, [0])) / max(len(siresire_lookup.get(x, [0])), 1)
+        lambda x: np.nan if x not in siresire_lookup else np.mean(siresire_lookup[x])
     )
     horse_df["avg_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-        lambda x: sum(siredam_lookup.get(x, [0])) / max(len(siredam_lookup.get(x, [0])), 1)
+        lambda x: np.nan if x not in siredam_lookup else np.mean(siredam_lookup[x])
     )
-    horse_df["max_damdam_auntuncle_score"] = horse_df["damdam_id"].map(lambda x: max(damdam_lookup.get(x, [0])))
-    horse_df["max_damsire_auntuncle_score"] = horse_df["damsire_id"].map(lambda x: max(damsire_lookup.get(x, [0])))
-    horse_df["max_siresire_auntuncle_score"] = horse_df["siresire_id"].map(lambda x: max(siresire_lookup.get(x, [0])))
-    horse_df["max_siredam_auntuncle_score"] = horse_df["siredam_id"].map(lambda x: max(siredam_lookup.get(x, [0])))
-    horse_df["min_damdam_auntuncle_score"] = horse_df["damdam_id"].map(lambda x: min(damdam_lookup.get(x, [0])))
-    horse_df["min_damsire_auntuncle_score"] = horse_df["damsire_id"].map(lambda x: min(damsire_lookup.get(x, [0])))
-    horse_df["min_siresire_auntuncle_score"] = horse_df["siresire_id"].map(lambda x: min(siresire_lookup.get(x, [0])))
-    horse_df["min_siredam_auntuncle_score"] = horse_df["siredam_id"].map(lambda x: min(siredam_lookup.get(x, [0])))
+
+    horse_df["max_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
+        lambda x: np.nan if x not in damdam_lookup else max(damdam_lookup[x])
+    )
+    horse_df["max_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
+        lambda x: np.nan if x not in damsire_lookup else max(damsire_lookup[x])
+    )
+    horse_df["max_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
+        lambda x: np.nan if x not in siresire_lookup else max(siresire_lookup[x])
+    )
+    horse_df["max_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
+        lambda x: np.nan if x not in siredam_lookup else max(siredam_lookup[x])
+    )
+
+    horse_df["min_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
+        lambda x: np.nan if x not in damdam_lookup else min(damdam_lookup[x])
+    )
+    horse_df["min_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
+        lambda x: np.nan if x not in damsire_lookup else min(damsire_lookup[x])
+    )
+    horse_df["min_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
+        lambda x: np.nan if x not in siresire_lookup else min(siresire_lookup[x])
+    )
+    horse_df["min_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
+        lambda x: np.nan if x not in siredam_lookup else min(siredam_lookup[x])
+    )
+
     horse_df["std_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-        lambda x: float(np.std(damdam_lookup.get(x, [0])))
+        lambda x: np.nan if x not in damdam_lookup else float(np.std(damdam_lookup[x]))
     )
     horse_df["std_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-        lambda x: float(np.std(damsire_lookup.get(x, [0])))
+        lambda x: np.nan if x not in damsire_lookup else float(np.std(damsire_lookup[x]))
     )
     horse_df["std_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-        lambda x: float(np.std(siresire_lookup.get(x, [0])))
+        lambda x: np.nan if x not in siresire_lookup else float(np.std(siresire_lookup[x]))
     )
     horse_df["std_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-        lambda x: float(np.std(siredam_lookup.get(x, [0])))
+        lambda x: np.nan if x not in siredam_lookup else float(np.std(siredam_lookup[x]))
     )
 
     # Compute scores
@@ -263,6 +291,14 @@ def add_damsire_info(horse_df: pd.DataFrame) -> pd.DataFrame:
     horse_df["race_score_siresire"] = horse_df["siresire_id"].map(race_lookup)
     horse_df["race_score_damdam"] = horse_df["damdam_id"].map(race_lookup)
     horse_df["race_score_damsire"] = horse_df["damsire_id"].map(race_lookup)
+    horse_df["race_score_siresiresire"] = horse_df["siresiresire_id"].map(race_lookup)
+    horse_df["race_score_siresiredam"] = horse_df["siresiredam_id"].map(race_lookup)
+    horse_df["race_score_siredamsire"] = horse_df["siredamsire_id"].map(race_lookup)
+    horse_df["race_score_siredamdam"] = horse_df["siredamdam_id"].map(race_lookup)
+    horse_df["race_score_damsiresire"] = horse_df["damsiresire_id"].map(race_lookup)
+    horse_df["race_score_damsiredam"] = horse_df["damsiredam_id"].map(race_lookup)
+    horse_df["race_score_damdamsire"] = horse_df["damdamsire_id"].map(race_lookup)
+    horse_df["race_score_damdamdam"] = horse_df["damdamdam_id"].map(race_lookup)
 
     horse_df["avg_dam_sibling_score"] = horse_df.groupby(["dam_id"])["race_score"].transform(
         lambda x: (x.sum() - x) / (len(x) - 1)
@@ -338,7 +374,7 @@ def main():
     horse_df = add_damsire_info(horse_df)
     assert horse_df is not None
 
-    feature_cols = [
+    raw_feature_cols = [
         "race_score",
         "race_score_dam",
         "race_score_sire",
@@ -386,26 +422,32 @@ def main():
         "std_siredam_auntuncle_score",
     ]
 
-    print(horse_df[feature_cols].corr())
+    feature_cols = []
+    for col in raw_feature_cols:
+        num_na_rows = horse_df[col].isna().sum()
+        if num_na_rows > 0.5 * len(horse_df):
+            print(f"Dropping {col}")
+            continue
+        feature_cols.append(col)
 
+    print(horse_df[feature_cols].corr())
     feature_cols.remove("race_score")
 
     X = horse_df[feature_cols].fillna(0)
     y = horse_df["race_score"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # RF
     rf = RandomForestRegressor()
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
 
-    # plt.figure(figsize=(8, 6))
-    # plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
-    # plt.xlabel("Actual Race Score")
-    # plt.ylabel("Predicted Race Score")
-    # plt.title("Random Forest Predictions vs Actual")
-    # plt.grid(True)
-    # plt.show()
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
+    plt.xlabel("Actual Race Score")
+    plt.ylabel("Predicted Race Score")
+    plt.title("Random Forest Predictions vs Actual")
+    plt.grid(True)
+    plt.show()
 
     mean_pred = np.full_like(y_test, y_train.mean())
     me_mean = mean_squared_error(y_test, mean_pred)
