@@ -129,7 +129,6 @@ if rows:
     selected_df = df[df["sire_id"] == df.iloc[idx]["sire_id"]]
     selected_df = selected_df[selected_df["horse_racing_api_id"] != selected_id]
     st.text(f"Max race score: {df.iloc[idx]['max_sire_sibling_score']}")
-    st.text(f"Max race score: {max(selected_df['race_score'])}")
     st.text(f"Avg race score: {df.iloc[idx]['avg_sire_sibling_score']}")
     st.dataframe(selected_df, width="stretch", key="sibling_table", hide_index=True)
 
@@ -138,7 +137,6 @@ if rows:
     selected_df = df[df["siredam_id"] == df.iloc[idx]["siredam_id"]]
     selected_df = selected_df[selected_df["horse_racing_api_id"] != selected_id]
     st.text(f"Max race score: {df.iloc[idx]['max_siredam_cousin_score']}")
-    st.text(f"Max race score: {max(selected_df['race_score'])}")
     st.text(f"Avg race score: {df.iloc[idx]['avg_siredam_cousin_score']}")
     st.dataframe(selected_df, width="stretch", key="siredam_cousin_table", hide_index=True)
 
@@ -147,7 +145,6 @@ if rows:
     selected_df = df[df["siresire_id"] == df.iloc[idx]["siresire_id"]]
     selected_df = selected_df[selected_df["horse_racing_api_id"] != selected_id]
     st.text(f"Max race score: {df.iloc[idx]['max_siresire_cousin_score']}")
-    st.text(f"Max race score: {max(selected_df['race_score'])}")
     st.text(f"Avg race score: {df.iloc[idx]['avg_siresire_cousin_score']}")
     st.dataframe(selected_df, width="stretch", key="siresire_cousin_table", hide_index=True)
 
@@ -155,17 +152,29 @@ if rows:
     st.subheader("Siresire Aunt/Uncle")
     selected_df = df[df["sire_id"] == df.iloc[idx]["siresire_id"]]
     st.text(f"Max race score: {df.iloc[idx]['max_siresire_auntuncle_score']}")
-    st.text(f"Max race score: {max(selected_df['race_score'])}")
     st.text(f"Avg race score: {df.iloc[idx]['avg_siresire_auntuncle_score']}")
     st.dataframe(selected_df, width="stretch", key="siresire_auntuncle_table", hide_index=True)
 
     # Siredam Aunt/Uncle
     st.subheader("Siredam Aunt/Uncle")
-    selected_df = df[df["sire_id"] == df.iloc[idx]["siredam_id"]]
+    selected_df = df[df["dam_id"] == df.iloc[idx]["siredam_id"]]
     st.text(f"Max race score: {df.iloc[idx]['max_siredam_auntuncle_score']}")
-    st.text(f"Max race score: {max(selected_df['race_score']) if len(selected_df) else 'NA'}")
     st.text(f"Avg race score: {df.iloc[idx]['avg_siredam_auntuncle_score']}")
     st.dataframe(selected_df, width="stretch", key="siredam_auntuncle_table", hide_index=True)
+
+    # Damdam Aunt/Uncle
+    st.subheader("Damdam Aunt/Uncle")
+    selected_df = df[df["dam_id"] == df.iloc[idx]["damdam_id"]]
+    st.text(f"Max race score: {df.iloc[idx]['max_damdam_auntuncle_score']}")
+    st.text(f"Avg race score: {df.iloc[idx]['avg_damdam_auntuncle_score']}")
+    st.dataframe(selected_df, width="stretch", key="damdam_auntuncle_table", hide_index=True)
+
+    # Damsire Aunt/Uncle
+    st.subheader("Damsire Aunt/Uncle")
+    selected_df = df[df["sire_id"] == df.iloc[idx]["damsire_id"]]
+    st.text(f"Max race score: {df.iloc[idx]['max_damsire_auntuncle_score']}")
+    st.text(f"Avg race score: {df.iloc[idx]['avg_damsire_auntuncle_score']}")
+    st.dataframe(selected_df, width="stretch", key="damsire_auntuncle_table", hide_index=True)
 
 else:
     st.write("_Click a row above to see details here_")

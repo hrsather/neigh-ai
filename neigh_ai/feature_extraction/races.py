@@ -116,98 +116,96 @@ class RaceModel:
             .assign(sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False))
             .assign(dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False))
         )
-        dam_lookup = horse_df.set_index("horse_racing_api_id")["dam_id"]
-        sire_lookup = horse_df.set_index("horse_racing_api_id")["sire_id"]
-        race_lookup = horse_df.set_index("horse_racing_api_id")["race_score"]
+        dam_lookup_id = horse_df.set_index("horse_racing_api_id")["dam_id"]
+        sire_lookup_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
+        race_lookup_score = horse_df.set_index("horse_racing_api_id")["race_score"]
 
         # Compute grandparent IDs
-        horse_df["damdam_id"] = horse_df["dam_id"].map(dam_lookup)
-        horse_df["siresire_id"] = horse_df["sire_id"].map(sire_lookup)
-        horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup)
-        horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup)
+        horse_df["damdam_id"] = horse_df["dam_id"].map(dam_lookup_id)
+        horse_df["siresire_id"] = horse_df["sire_id"].map(sire_lookup_id)
+        horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup_id)
+        horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup_id)
 
-        horse_df["siresiresire_id"] = horse_df["siresire_id"].map(sire_lookup)
-        horse_df["siresiredam_id"] = horse_df["siresire_id"].map(dam_lookup)
-        horse_df["siredamsire_id"] = horse_df["siredam_id"].map(sire_lookup)
-        horse_df["siredamdam_id"] = horse_df["siredam_id"].map(dam_lookup)
-        horse_df["damsiresire_id"] = horse_df["damsire_id"].map(sire_lookup)
-        horse_df["damsiredam_id"] = horse_df["damsire_id"].map(dam_lookup)
-        horse_df["damdamsire_id"] = horse_df["damdam_id"].map(sire_lookup)
-        horse_df["damdamdam_id"] = horse_df["damdam_id"].map(dam_lookup)
+        horse_df["siresiresire_id"] = horse_df["siresire_id"].map(sire_lookup_id)
+        horse_df["siresiredam_id"] = horse_df["siresire_id"].map(dam_lookup_id)
+        horse_df["siredamsire_id"] = horse_df["siredam_id"].map(sire_lookup_id)
+        horse_df["siredamdam_id"] = horse_df["siredam_id"].map(dam_lookup_id)
+        horse_df["damsiresire_id"] = horse_df["damsire_id"].map(sire_lookup_id)
+        horse_df["damsiredam_id"] = horse_df["damsire_id"].map(dam_lookup_id)
+        horse_df["damdamsire_id"] = horse_df["damdam_id"].map(sire_lookup_id)
+        horse_df["damdamdam_id"] = horse_df["damdam_id"].map(dam_lookup_id)
 
         # Compute uncle/aunts scores
-        damdam_lookup = horse_df.groupby("damdam_id")["race_score"].apply(list)
-        damsire_lookup = horse_df.groupby("damsire_id")["race_score"].apply(list)
-        siresire_lookup = horse_df.groupby("siresire_id")["race_score"].apply(list)
-        siredam_lookup = horse_df.groupby("siredam_id")["race_score"].apply(list)
+        dam_lookup_score = horse_df.groupby("dam_id")["race_score"].apply(list)
+        sire_lookup_score = horse_df.groupby("sire_id")["race_score"].apply(list)
 
         horse_df["avg_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in damdam_lookup else np.mean(damdam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else np.mean(dam_lookup_score[x])
         )
         horse_df["avg_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in damsire_lookup else np.mean(damsire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else np.mean(sire_lookup_score[x])
         )
         horse_df["avg_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in siresire_lookup else np.mean(siresire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else np.mean(sire_lookup_score[x])
         )
         horse_df["avg_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in siredam_lookup else np.mean(siredam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else np.mean(dam_lookup_score[x])
         )
 
         horse_df["max_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in damdam_lookup else max(damdam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else max(dam_lookup_score[x])
         )
         horse_df["max_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in damsire_lookup else max(damsire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else max(sire_lookup_score[x])
         )
         horse_df["max_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in siresire_lookup else max(siresire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else max(sire_lookup_score[x])
         )
         horse_df["max_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in siredam_lookup else max(siredam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else max(dam_lookup_score[x])
         )
 
         horse_df["min_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in damdam_lookup else min(damdam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else min(dam_lookup_score[x])
         )
         horse_df["min_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in damsire_lookup else min(damsire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else min(sire_lookup_score[x])
         )
         horse_df["min_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in siresire_lookup else min(siresire_lookup[x])
+            lambda x: np.nan if x not in sire_lookup_score else min(sire_lookup_score[x])
         )
         horse_df["min_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in siredam_lookup else min(siredam_lookup[x])
+            lambda x: np.nan if x not in dam_lookup_score else min(dam_lookup_score[x])
         )
 
         horse_df["std_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in damdam_lookup else float(np.std(damdam_lookup[x]))
+            lambda x: np.nan if x not in dam_lookup_score else float(np.std(dam_lookup_score[x]))
         )
         horse_df["std_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in damsire_lookup else float(np.std(damsire_lookup[x]))
+            lambda x: np.nan if x not in sire_lookup_score else float(np.std(sire_lookup_score[x]))
         )
         horse_df["std_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in siresire_lookup else float(np.std(siresire_lookup[x]))
+            lambda x: np.nan if x not in sire_lookup_score else float(np.std(sire_lookup_score[x]))
         )
         horse_df["std_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in siredam_lookup else float(np.std(siredam_lookup[x]))
+            lambda x: np.nan if x not in dam_lookup_score else float(np.std(dam_lookup_score[x]))
         )
 
         # Compute scores
-        horse_df["race_score_dam"] = horse_df["dam_id"].map(race_lookup)
-        horse_df["race_score_sire"] = horse_df["sire_id"].map(race_lookup)
-        horse_df["race_score_siredam"] = horse_df["siredam_id"].map(race_lookup)
-        horse_df["race_score_siresire"] = horse_df["siresire_id"].map(race_lookup)
-        horse_df["race_score_damdam"] = horse_df["damdam_id"].map(race_lookup)
-        horse_df["race_score_damsire"] = horse_df["damsire_id"].map(race_lookup)
-        horse_df["race_score_siresiresire"] = horse_df["siresiresire_id"].map(race_lookup)
-        horse_df["race_score_siresiredam"] = horse_df["siresiredam_id"].map(race_lookup)
-        horse_df["race_score_siredamsire"] = horse_df["siredamsire_id"].map(race_lookup)
-        horse_df["race_score_siredamdam"] = horse_df["siredamdam_id"].map(race_lookup)
-        horse_df["race_score_damsiresire"] = horse_df["damsiresire_id"].map(race_lookup)
-        horse_df["race_score_damsiredam"] = horse_df["damsiredam_id"].map(race_lookup)
-        horse_df["race_score_damdamsire"] = horse_df["damdamsire_id"].map(race_lookup)
-        horse_df["race_score_damdamdam"] = horse_df["damdamdam_id"].map(race_lookup)
+        horse_df["race_score_dam"] = horse_df["dam_id"].map(race_lookup_score)
+        horse_df["race_score_sire"] = horse_df["sire_id"].map(race_lookup_score)
+        horse_df["race_score_siredam"] = horse_df["siredam_id"].map(race_lookup_score)
+        horse_df["race_score_siresire"] = horse_df["siresire_id"].map(race_lookup_score)
+        horse_df["race_score_damdam"] = horse_df["damdam_id"].map(race_lookup_score)
+        horse_df["race_score_damsire"] = horse_df["damsire_id"].map(race_lookup_score)
+        horse_df["race_score_siresiresire"] = horse_df["siresiresire_id"].map(race_lookup_score)
+        horse_df["race_score_siresiredam"] = horse_df["siresiredam_id"].map(race_lookup_score)
+        horse_df["race_score_siredamsire"] = horse_df["siredamsire_id"].map(race_lookup_score)
+        horse_df["race_score_siredamdam"] = horse_df["siredamdam_id"].map(race_lookup_score)
+        horse_df["race_score_damsiresire"] = horse_df["damsiresire_id"].map(race_lookup_score)
+        horse_df["race_score_damsiredam"] = horse_df["damsiredam_id"].map(race_lookup_score)
+        horse_df["race_score_damdamsire"] = horse_df["damdamsire_id"].map(race_lookup_score)
+        horse_df["race_score_damdamdam"] = horse_df["damdamdam_id"].map(race_lookup_score)
 
         horse_df["avg_dam_sibling_score"] = horse_df.groupby(["dam_id"])["race_score"].transform(
             lambda x: (x.sum() - x) / (len(x) - 1)
