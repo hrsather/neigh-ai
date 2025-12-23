@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -116,6 +117,7 @@ if rows:
     st.text(f"Race score: {df.iloc[idx]['race_score']}")
     st.text(f"Num races: {df.iloc[idx]['num_races']}")
     st.text(f"Lifetime winnings: ${int(df.iloc[idx]['total_prize_money'])}")
+    st.text(f"Average winnings per race: ${int(np.exp(df.iloc[idx]['log_avg_prize_money']))}")
     st.text(f"Avg G1 finish: {df.iloc[idx]['avg_g1_finish']}")
     st.text(f"Avg G2 finish: {df.iloc[idx]['avg_g2_finish']}")
     st.text(f"Avg G3 finish: {df.iloc[idx]['avg_g3_finish']}")

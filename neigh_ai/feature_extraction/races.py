@@ -35,7 +35,7 @@ class RaceModel:
 
     @classmethod
     def _score_finish(cls, pos: int, max_points: int = 10) -> int:
-        # 1st=max_points, 2nd=max_points-1... 10th place=1. >10th=0
+        # 1st=max_points, 2nd=max_points-1, ..., 10th place=1, >10th=0
         return max_points + 1 - np.minimum(pos, max_points + 1)
 
     def _get_dfs(self) -> None:
@@ -56,8 +56,8 @@ class RaceModel:
                 g2_finish=lambda df: np.where(df["pattern"] == 2, self._score_finish(df["finish_position"]), np.nan),
                 g3_finish=lambda df: np.where(df["pattern"] == 3, self._score_finish(df["finish_position"]), np.nan),
             )
-            .dropna(subset=["speed"])
-            # .query("12 < speed < 19")
+            .dropna(subset=["speed"])  # Drop races with no speed
+            .query("12 < speed < 19")  # Drop outliers
             # .query("going == 'Fast'")
             # .query("surface == 'Dirt'")
             # .query("7 <= distance_furlongs <= 13")
@@ -84,7 +84,7 @@ class RaceModel:
             .query("1 < total_prize_money")
             .assign(
                 log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
-                # Fills all na feature_cols with their mean
+                # Fills all na feature_cols with their mean. TODO: Do smarter
                 **{
                     col: lambda d, col=col: d[col].fillna(d[col].mean(numeric_only=True))
                     for col in self.feature_cols
@@ -292,17 +292,6 @@ class RaceModel:
         return horse_df
 
 
-def show_best_horses(horse_df: pd.DataFrame, races_df: pd.DataFrame) -> None:
-    for horse_racing_api_id in horse_df.sort_values(by="race_score", ascending=False)["horse_racing_api_id"]:
-        plot_id(df=races_df, horse_racing_api_id=horse_racing_api_id)
-
-        for column in horse_df.columns:
-            if column in ["horse_racing_api_id", "num_races"]:
-                continue
-
-            plot_hist(horse_df, column, horse_racing_api_id)
-
-
 def show_features_info(race_model: RaceModel) -> None:
     cols = list(set(race_model.feature_cols) - {"race_score"})
     df = race_model.horse_df[cols]
@@ -321,67 +310,6 @@ def show_features_info(race_model: RaceModel) -> None:
 
         print(pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False))
         print()
-
-
-def plot_corr(x_col: str, y_col: str, df: pd.DataFrame) -> None:
-    x = df[x_col]
-    y = df[y_col]
-    mask = np.isfinite(x) & np.isfinite(y)
-    x = x[mask]
-    y = y[mask]
-    plt.scatter(x, y)
-    m, b = np.polyfit(x, y, 1)  # 1 means linear
-    plt.axvline(x=0, color="black", linestyle="--", label="x = 0")
-    plt.plot(x, m * x + b, color="red", label="Linear fit")
-    plt.xlabel(x_col)
-    plt.ylabel(y_col)
-    corr = df[x_col].corr(df[y_col])
-    plt.title(f"Correlation: {corr:.4f}")
-    plt.show()
-
-
-def plot_id(df: pd.DataFrame, horse_racing_api_id: str) -> None:
-    yearling_races = df[df["horse_racing_api_id"] == horse_racing_api_id]
-
-    plot_power(df["distance_meters"], df["speed"])
-
-    plt.scatter(yearling_races["distance_meters"], yearling_races["speed"], color="red", label="Selected horse")
-
-    plt.title(f"Yearling: {horse_racing_api_id}")
-    plt.legend()
-    plt.show()
-
-
-def plot_power(x: pd.Series, y: pd.Series, show=False):
-    model = LinearRegression()
-    model.fit(x.to_numpy().reshape(-1, 1), y)
-
-    plt.scatter(x, y, color="blue", alpha=0.5, label="Data")
-
-    x_fit = np.linspace(x.min(), x.max(), 500).reshape(-1, 1)
-    y_fit = model.predict(x_fit)
-    plt.plot(x_fit, y_fit, color="red", linewidth=2)
-
-    plt.xlabel("Distance (meters)")
-    plt.ylabel("Speed (m/s)")
-    plt.title("Race Speed vs Distance with Linear Fit")
-    plt.legend()
-    plt.grid(True)
-
-    if show:
-        plt.show()
-
-
-def plot_hist(df: pd.DataFrame, column: str, horse_racing_api_id: str) -> None:
-    plt.hist(df[column], bins=50)
-    plt.title(f"Yearling: {horse_racing_api_id} - {column}")
-    plt.axvline(
-        x=df[df["horse_racing_api_id"] == horse_racing_api_id][column].item(),
-        color="red",
-        linestyle="--",
-        label="x = 0",
-    )
-    plt.show()
 
 
 def main():
@@ -470,17 +398,6 @@ def main():
     me_model = mean_squared_error(y_test, y_pred)
 
     print(f"MSE - Model: {me_model:.3f}, Mean baseline: {me_mean:.3f}")
-
-
-# print(race_model.horse_df.drop(columns=["horse_racing_api_id", "num_races"]).corr())
-# plot_corr("race_score", "avg_speed_diff", race_model.horse_df)
-# plot_corr("race_score", "avg_g1_finish", race_model.horse_df)
-# plot_corr("race_score", "avg_g2_finish", race_model.horse_df)
-# plot_corr("race_score", "log_avg_prize_money", race_model.horse_df)
-#
-# show_best_horses(race_model.horse_df, race_model.race_df)
-
-# show_features_info(race_model)
 
 
 if __name__ == "__main__":
