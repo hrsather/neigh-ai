@@ -1,21 +1,23 @@
-from dash import Dash, dcc, html, page_container
-from flask import send_from_directory
+import streamlit as st
 
-from neigh_ai.constants import get_images_folder
+st.set_page_config(
+    page_title="Starter Dashboard",
+    layout="wide",
+)
 
+st.title("📊 Starter Streamlit + Plotly Dashboard")
+st.write("Use the sidebar to navigate between pages.")
 
-def create_app() -> Dash:
-    app = Dash(__name__, use_pages=True, suppress_callback_exceptions=True)
+st.markdown("""
+This is the **main landing page**.
 
-    app.layout = html.Div([dcc.Location(id="url"), page_container])
+Pages included:
+- Overview (with sidebar)
+- Analytics (Plotly charts)
+- About
 
-    @app.server.route("/data/images/<path:filename>")
-    def serve_image(filename: str):
-        return send_from_directory(get_images_folder(), filename)
-
-    return app
-
-
-if __name__ == "__main__":
-    app = create_app()
-    app.run(host="0.0.0.0", port=8050, debug=False)
+Run with:
+```bash
+streamlit run app.py
+```
+""")
