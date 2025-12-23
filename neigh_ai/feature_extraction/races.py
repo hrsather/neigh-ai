@@ -402,6 +402,8 @@ def main():
         "max_sire_sibling_score",
         "std_dam_sibling_score",
         "std_sire_sibling_score",
+        "min_sire_sibling_score",
+        "min_dam_sibling_score",
         "avg_damdam_cousin_score",
         "avg_damsire_cousin_score",
         "avg_siresire_cousin_score",
