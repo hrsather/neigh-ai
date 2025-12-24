@@ -148,6 +148,8 @@ if rows:
     # Pedigree charts
     st.subheader("Pedigree Scores (by percentile and distribution)")
 
+    # TODO: Add sire, dam indiv
+
     def pedigree_charts(pedigree_df: pd.DataFrame, column: str) -> None:
         clean_name: str = column.replace("_", " ").title()
         if not len(pedigree_df):
@@ -156,12 +158,17 @@ if rows:
             f"{clean_name}: Avg={percentileofscore(df['race_score'], df.iloc[idx][f'avg_{column}'], kind='rank'):.0f}%, Max={percentileofscore(df['race_score'], df.iloc[idx][f'max_{column}'], kind='rank'):.0f}%"
         ):
             st.subheader(clean_name)
-            st.text(f"Max race score: {df.iloc[idx][f'max_{column}']}")
-            st.text(f"Avg race score: {df.iloc[idx][f'avg_{column}']}")
-            st.text(f"Avg race score: {np.mean(pedigree_df['race_score'])}")
             assert np.isclose(df.iloc[idx][f"avg_{column}"], np.mean(pedigree_df["race_score"]))
             st.dataframe(pedigree_df, width="stretch", key=column, hide_index=True)
 
+    # Dam Siblings
+    pedigree_charts(
+        df[
+            (df["dam_id"] == df.iloc[idx]["dam_id"])
+            & (df["horse_racing_api_id"] != df.iloc[idx]["horse_racing_api_id"])
+        ],
+        "dam_sibling_score",
+    )
     # Sire Siblings
     pedigree_charts(
         df[
@@ -186,18 +193,10 @@ if rows:
         ],
         "siresire_cousin_score",
     )
-
     # Siresire Aunt/Uncle
     pedigree_charts(df[df["sire_id"] == df.iloc[idx]["siresire_id"]], "siresire_auntuncle_score")
-
     # Siredam Aunt/Uncle
     pedigree_charts(df[df["dam_id"] == df.iloc[idx]["siredam_id"]], "siredam_auntuncle_score")
-
-    # Damdam Aunt/Uncle
-    pedigree_charts(df[df["dam_id"] == df.iloc[idx]["damdam_id"]], "damdam_auntuncle_score")
-
-    # Damsire Aunt/Uncle
-    pedigree_charts(df[df["sire_id"] == df.iloc[idx]["damsire_id"]], "damsire_auntuncle_score")
 
 else:
     st.write("_Click a row above to see details here_")
