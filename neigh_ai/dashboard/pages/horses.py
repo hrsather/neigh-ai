@@ -122,7 +122,6 @@ rows = state.get("selection", {}).get("rows", [])
 
 # TODO: Pretty print horse tables
 # TODO: Add predicted race score
-# TODO: Add performance score drop down graph
 
 if rows:
     idx = rows[0]
@@ -138,6 +137,8 @@ if rows:
 
     col2.metric("Lifetime winnings", f"${int(horse_df['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df['log_avg_prize_money'])):,}")
+
+    plot_hist(df, column="race_score", horse_id=horse_df["horse_racing_api_id"], title="Race score")
 
     fig = plot_race_scatter(
         df=race_df,
