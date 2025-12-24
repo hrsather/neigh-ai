@@ -30,7 +30,7 @@ race_df = race_model.race_df
 df = race_model.horse_df
 
 
-def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model) -> None:
+def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_races: int) -> None:
     fig = go.Figure()
 
     df_other = df[df["horse_racing_api_id"] != horse_racing_api_id]
@@ -78,6 +78,7 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model) -> None
         yaxis_title="Speed (m/s)",
         legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99},
         template="plotly_white",
+        title=f"Race Speeds over a career of {num_races} races",
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -131,12 +132,17 @@ if rows:
     col1.metric(
         "Race Score Percentile", f"{percentileofscore(df['race_score'], horse_df['race_score'], kind='rank'):.1f}%"
     )
-    col1.metric("Num races", df.iloc[idx]["num_races"])
+    col1.metric("Predicted Race Score", f"{46}%")
 
     col2.metric("Lifetime winnings", f"${int(horse_df['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df['log_avg_prize_money'])):,}")
 
-    fig = plot_race_scatter(df=race_df, horse_racing_api_id=horse_df["horse_racing_api_id"], model=race_model.model)
+    fig = plot_race_scatter(
+        df=race_df,
+        horse_racing_api_id=horse_df["horse_racing_api_id"],
+        model=race_model.model,
+        num_races=int(df.iloc[idx]["num_races"]),
+    )
 
     st.subheader("Performance Features (by percentile and distribution)")
     plot_hist(df, column="avg_speed_diff", horse_id=horse_df["horse_racing_api_id"], title="Speed")
