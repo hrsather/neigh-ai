@@ -121,6 +121,8 @@ state = st.session_state.get("horse_table", {})
 rows = state.get("selection", {}).get("rows", [])
 
 # TODO: Add analytics page
+# TODO: Pretty print horse tables
+# TODO: Add predicted race score
 
 if rows:
     idx = rows[0]

@@ -27,7 +27,7 @@ st.markdown(
     - See performance trends across distances and speeds
 
     📊 **Analyze rankings**
-    - Compare horses by performance score
+    - Compare horses by racing score
     - Identify top performers by percentile and consistency
 
     🌳 **Understand lineage impact**
