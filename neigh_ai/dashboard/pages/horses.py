@@ -120,9 +120,9 @@ horse_name = "Please select a horse from the table by clicking the check box"
 state = st.session_state.get("horse_table", {})
 rows = state.get("selection", {}).get("rows", [])
 
-# TODO: Add analytics page
 # TODO: Pretty print horse tables
 # TODO: Add predicted race score
+# TODO: Add performance score drop down graph
 
 if rows:
     idx = rows[0]
