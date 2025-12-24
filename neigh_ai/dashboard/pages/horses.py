@@ -157,7 +157,15 @@ if rows:
     # Pedigree charts
     st.subheader("Pedigree Scores (by percentile and distribution)")
 
-    # TODO: Add sire, dam indiv
+    # TODO: Add sire, dam names
+    if pd.notna(df.iloc[idx]["race_score_sire"]):
+        st.text(
+            f"Sire: {df.iloc[idx]['sire_id']} - {percentileofscore(df['race_score_sire'].dropna(), df.iloc[idx]['race_score_sire'], kind='rank'):.0f}%"
+        )
+    if pd.notna(df.iloc[idx]["race_score_dam"]):
+        st.text(
+            f"Dam: {df.iloc[idx]['dam_id']} - {percentileofscore(df['race_score_dam'].dropna(), df.iloc[idx]['race_score_dam'], kind='rank'):.0f}%"
+        )
 
     def pedigree_charts(pedigree_df: pd.DataFrame, column: str) -> None:
         clean_name: str = column.replace("_", " ").title()
