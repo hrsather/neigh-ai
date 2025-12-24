@@ -3,6 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import yaml
 from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
@@ -13,14 +14,24 @@ from sklearn.model_selection import train_test_split
 class RaceModel:
     def __init__(self, race_results_path: Path) -> None:
         self._race_results_path = race_results_path
-        self.feature_cols: list[str] = [
-            "avg_speed_diff",
-            "avg_g1_finish",
-            "avg_g2_finish",
-            "avg_g3_finish",
-            "log_avg_prize_money",
-        ]
+        with open("configs.yaml") as f:
+            config = yaml.safe_load(f)
+
+            self.feature_cols: list[str] = config["performance_score_features"]
+            self.model_cols: list[str] = config["model_features"]
+
         self._get_dfs()
+        self.model_cols = self._filter_sparse_features()
+
+    def _filter_sparse_features(self) -> list[str]:
+        feature_cols: list[str] = []
+        for col in self.model_cols:
+            num_na_rows = self.horse_df[col].isna().sum()
+            if num_na_rows > 0.5 * len(self.horse_df):
+                print(f"Dropping {col}")
+                continue
+            feature_cols.append(col)
+        return feature_cols
 
     @classmethod
     def _parse_race_time(cls, val: str) -> pd.Timedelta | NaTType:
@@ -312,72 +323,16 @@ def show_features_info(race_model: RaceModel) -> None:
 
 def main():
     race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
-    horse_df = race_model.horse_df
 
-    raw_feature_cols = [
-        "race_score",
-        "race_score_dam",
-        "race_score_sire",
-        "race_score_siredam",
-        "race_score_siresire",
-        "race_score_damdam",
-        "race_score_damsire",
-        "avg_dam_sibling_score",
-        "avg_sire_sibling_score",
-        "max_dam_sibling_score",
-        "max_sire_sibling_score",
-        "std_dam_sibling_score",
-        "std_sire_sibling_score",
-        "min_sire_sibling_score",
-        "min_dam_sibling_score",
-        "avg_damdam_cousin_score",
-        "avg_damsire_cousin_score",
-        "avg_siresire_cousin_score",
-        "avg_siredam_cousin_score",
-        "max_damdam_cousin_score",
-        "max_damsire_cousin_score",
-        "max_siresire_cousin_score",
-        "max_siredam_cousin_score",
-        "std_damdam_cousin_score",
-        "std_damsire_cousin_score",
-        "std_siresire_cousin_score",
-        "std_siredam_cousin_score",
-        "min_damdam_cousin_score",
-        "min_damsire_cousin_score",
-        "min_siresire_cousin_score",
-        "min_siredam_cousin_score",
-        "avg_damdam_auntuncle_score",
-        "avg_damsire_auntuncle_score",
-        "avg_siresire_auntuncle_score",
-        "avg_siredam_auntuncle_score",
-        "max_damdam_auntuncle_score",
-        "max_damsire_auntuncle_score",
-        "max_siresire_auntuncle_score",
-        "max_siredam_auntuncle_score",
-        "min_damdam_auntuncle_score",
-        "min_damsire_auntuncle_score",
-        "min_siresire_auntuncle_score",
-        "min_siredam_auntuncle_score",
-        "std_damdam_auntuncle_score",
-        "std_damsire_auntuncle_score",
-        "std_siresire_auntuncle_score",
-        "std_siredam_auntuncle_score",
-    ]
+    print(race_model.horse_df[race_model.model_cols].corr())
+    race_model.model_cols.remove("race_score")
 
-    feature_cols = []
-    for col in raw_feature_cols:
-        num_na_rows = horse_df[col].isna().sum()
-        if num_na_rows > 0.5 * len(horse_df):
-            print(f"Dropping {col}")
-            continue
-        feature_cols.append(col)
-
-    print(horse_df[feature_cols].corr())
-    feature_cols.remove("race_score")
-
-    X = horse_df[feature_cols].fillna(0)
-    y = horse_df["race_score"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        race_model.horse_df[race_model.model_cols].fillna(0),
+        race_model.horse_df["race_score"],
+        test_size=0.2,
+        random_state=42,
+    )
 
     rf = RandomForestRegressor()
     rf.fit(X_train, y_train)
@@ -391,8 +346,7 @@ def main():
     plt.grid(True)
     plt.show()
 
-    mean_pred = np.full_like(y_test, y_train.mean())
-    me_mean = mean_squared_error(y_test, mean_pred)
+    me_mean = mean_squared_error(y_test, np.full_like(y_test, y_train.mean()))
     me_model = mean_squared_error(y_test, y_pred)
 
     print(f"MSE - Model: {me_model:.3f}, Mean baseline: {me_mean:.3f}")
