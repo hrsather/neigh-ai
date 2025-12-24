@@ -67,9 +67,7 @@ class RaceModel:
 
         self.horse_df: pd.DataFrame = (
             self.race_df.assign(
-                predicted_speed=lambda df: self.model.predict(
-                    df["distance_meters"].to_numpy().reshape(-1, 1)
-                ),  # TODO: Better model
+                predicted_speed=lambda df: self.model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
             .groupby("horse_racing_api_id", as_index=False)
