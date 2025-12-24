@@ -64,12 +64,14 @@ class RaceModel:
         )
 
         # Train model once
-        model = LinearRegression()
-        model.fit(self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy())
+        self.model = LinearRegression()
+        self.model.fit(self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy())
 
         self.horse_df: pd.DataFrame = (
             self.race_df.assign(
-                predicted_speed=lambda df: model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
+                predicted_speed=lambda df: self.model.predict(
+                    df["distance_meters"].to_numpy().reshape(-1, 1)
+                ),  # TODO: Better model
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
             .groupby("horse_racing_api_id", as_index=False)
@@ -84,7 +86,7 @@ class RaceModel:
             .query("1 < total_prize_money")
             .assign(
                 log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
-                # Fills all na feature_cols with their mean. TODO: Do smarter
+                # Fills all na feature_cols with their mean. TODO: Do smarter. Find correlation of race finishes to one another
                 **{
                     col: lambda d, col=col: d[col].fillna(d[col].mean(numeric_only=True))
                     for col in self.feature_cols

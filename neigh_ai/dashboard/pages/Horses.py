@@ -10,7 +10,6 @@ from neigh_ai.feature_extraction.races import RaceModel
 
 st.title("Horses")
 
-# Sidebar (this page explicitly uses it)
 st.sidebar.header("Filters")
 category = st.sidebar.selectbox(
     "Select category",
@@ -30,7 +29,7 @@ race_df = race_model.race_df
 df = race_model.horse_df
 
 
-def plot_power_plotly(df: pd.DataFrame, horse_racing_api_id: str) -> None:
+def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str) -> None:
     fig = go.Figure()
 
     df_other = df[df["horse_racing_api_id"] != horse_racing_api_id]
@@ -107,6 +106,7 @@ selected_name = "Please select a horse from the table by clicking the check box"
 state = st.session_state.get("horse_table", {})
 rows = state.get("selection", {}).get("rows", [])
 
+# TODO: Add analytics page
 
 if rows:
     idx = rows[0]
@@ -114,6 +114,7 @@ if rows:
     selected_name = df.iloc[idx]["horse_name"]
     st.subheader(selected_name)
 
+    # TODO: Percentiles
     st.text(f"Race score: {df.iloc[idx]['race_score']}")
     st.text(f"Num races: {df.iloc[idx]['num_races']}")
     st.text(f"Lifetime winnings: ${int(df.iloc[idx]['total_prize_money'])}")
@@ -122,7 +123,7 @@ if rows:
     st.text(f"Avg G2 finish: {df.iloc[idx]['avg_g2_finish']}")
     st.text(f"Avg G3 finish: {df.iloc[idx]['avg_g3_finish']}")
 
-    fig = plot_power_plotly(df=race_df, horse_racing_api_id=selected_id)
+    fig = plot_race_scatter(df=race_df, horse_racing_api_id=selected_id)  # TODO: Overlay model line
     plot_hist(df, column="avg_speed_diff", horse_racing_api_id=selected_id)
     plot_hist(df, column="log_avg_prize_money", horse_racing_api_id=selected_id)
 
