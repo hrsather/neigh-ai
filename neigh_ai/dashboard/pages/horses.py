@@ -29,7 +29,7 @@ race_df = race_model.race_df
 df = race_model.horse_df
 
 
-def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str) -> None:
+def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model) -> None:
     fig = go.Figure()
 
     df_other = df[df["horse_racing_api_id"] != horse_racing_api_id]
@@ -59,13 +59,25 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str) -> None:
         )
     )
 
+    # Add predictions
+    df_sorted = df.sort_values("distance_meters")
+    X = df_sorted["distance_meters"].to_numpy().reshape(-1, 1)
+    y_pred = model.predict(X)
+    fig.add_trace(
+        go.Scattergl(
+            x=df_sorted["distance_meters"],
+            y=y_pred,
+            mode="lines",
+            line={"color": "white", "width": 4},
+            name="Model prediction",
+        )
+    )
     fig.update_layout(
         xaxis_title="Distance (meters)",
         yaxis_title="Speed (m/s)",
-        legend={"yanchor": "top", "y": 0.99, "xanchor": "left", "x": 0.01},
+        legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99},
         template="plotly_white",
     )
-
     st.plotly_chart(fig, width="stretch")
 
 
@@ -123,7 +135,7 @@ if rows:
     st.text(f"Avg G2 finish: {df.iloc[idx]['avg_g2_finish']}")
     st.text(f"Avg G3 finish: {df.iloc[idx]['avg_g3_finish']}")
 
-    fig = plot_race_scatter(df=race_df, horse_racing_api_id=selected_id)  # TODO: Overlay model line
+    fig = plot_race_scatter(df=race_df, horse_racing_api_id=selected_id, model=race_model.model)
     plot_hist(df, column="avg_speed_diff", horse_racing_api_id=selected_id)
     plot_hist(df, column="log_avg_prize_money", horse_racing_api_id=selected_id)
 

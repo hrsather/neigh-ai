@@ -6,7 +6,6 @@ import pandas as pd
 from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 
@@ -57,14 +56,13 @@ class RaceModel:
                 g3_finish=lambda df: np.where(df["pattern"] == 3, self._score_finish(df["finish_position"]), np.nan),
             )
             .dropna(subset=["speed"])  # Drop races with no speed
-            .query("12 < speed < 19")  # Drop outliers
+            .query("10 < speed < 19")  # Drop outliers
             # .query("going == 'Fast'")
             # .query("surface == 'Dirt'")
             # .query("7 <= distance_furlongs <= 13")
         )
 
-        # Train model once
-        self.model = LinearRegression()
+        self.model = RandomForestRegressor(max_depth=3)
         self.model.fit(self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy())
 
         self.horse_df: pd.DataFrame = (
