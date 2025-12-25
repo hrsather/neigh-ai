@@ -17,21 +17,20 @@ class RaceModel:
         with open("configs.yaml") as f:
             config = yaml.safe_load(f)
 
-            self.feature_cols: list[str] = config["performance_score_features"]
-            self.model_cols: list[str] = config["model_features"]
+            self.ps_features: list[str] = config["performance_score_features"]
+            self.not_model_features: list[str] = config["not_model_features"]
 
         self._get_dfs()
-        self.model_cols = self._filter_sparse_features()
 
-    def _filter_sparse_features(self) -> list[str]:
-        feature_cols: list[str] = []
-        for col in self.model_cols:
+    @property
+    def model_cols(self):
+        ps_features: list[str] = []
+        for col in list(set(self.horse_df.columns) - set(self.not_model_features)):
             num_na_rows = self.horse_df[col].isna().sum()
             if num_na_rows > 0.5 * len(self.horse_df):
-                print(f"Dropping {col}")
                 continue
-            feature_cols.append(col)
-        return feature_cols
+            ps_features.append(col)
+        return ps_features
 
     @classmethod
     def _parse_race_time(cls, val: str) -> pd.Timedelta | NaTType:
@@ -97,19 +96,19 @@ class RaceModel:
             .query("1 < total_prize_money")
             .assign(
                 log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
-                # Fills all na feature_cols with their mean. TODO: Do smarter. Find correlation of race finishes to one another
+                # Fills all na PS features with their mean. TODO: Do smarter. Find correlation of race finishes to one another
                 **{
                     col: lambda d, col=col: d[col].fillna(d[col].mean(numeric_only=True))
-                    for col in self.feature_cols
+                    for col in self.ps_features
                     if col != "log_avg_prize_money"
                 },
-                # Harmonic mean of feature_cols
+                # Harmonic mean of PS features
                 race_score=lambda df: (
-                    df[self.feature_cols]
+                    df[self.ps_features]
                     .apply(zscore, ddof=0)
                     .pipe(lambda z: z + abs(z.min().min()) + 0.01)
                     .apply(hmean, axis=1)
-                    .pipe(lambda s: s - (abs(df[self.feature_cols].apply(zscore, ddof=0).min().min()) + 0.01))
+                    .pipe(lambda s: s - (abs(df[self.ps_features].apply(zscore, ddof=0).min().min()) + 0.01))
                 ),
             )
         )
@@ -139,7 +138,6 @@ class RaceModel:
             for gparent in ["dam", "sire"]:
                 parent_lookup_id = dam_lookup_id if gparent == "dam" else sire_lookup_id
                 horse_df[f"{parent}{gparent}_id"] = horse_df[f"{parent}_id"].map(parent_lookup_id)
-                horse_df[f"race_score_{parent}{gparent}"] = horse_df[f"{parent}{gparent}_id"].map(race_lookup_score)
 
                 for ggparent in ["dam", "sire"]:
                     parent_lookup_id = dam_lookup_id if ggparent == "dam" else sire_lookup_id
@@ -148,7 +146,8 @@ class RaceModel:
                     )
         return horse_df
 
-    def _stat_excluding_self(self, x, stat: str):
+    @classmethod
+    def _stat_excluding_self(cls, x, stat: str):
         out = pd.Series(index=x.index, dtype=float)
         for idx in x.index:
             others = x.drop(idx)
@@ -193,9 +192,6 @@ class RaceModel:
 
 def main():
     race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
-
-    print(race_model.horse_df[race_model.model_cols].corr())
-    race_model.model_cols.remove("race_score")
 
     X_train, X_test, y_train, y_test = train_test_split(
         race_model.horse_df[race_model.model_cols].fillna(0),
