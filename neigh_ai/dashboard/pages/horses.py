@@ -131,7 +131,7 @@ horse_name = "Please select a horse from the table by clicking the check box"
 state = st.session_state.get(table_key, {})
 rows = state.get("selection", {}).get("rows", [])
 
-# TODO: Analytics page
+# TODO: Analytics page. Show performance with no pedigree and all.
 
 if rows:
     idx = rows[0]
