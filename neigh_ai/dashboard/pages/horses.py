@@ -128,7 +128,6 @@ if rows:
     col1.metric(
         "Predicted Race Score", f"{percentileofscore(df['race_score'], horse_df['race_score_pred'], kind='rank'):.1f}%"
     )
-    col1.metric("Predicted Race Score", f"{float(horse_df['race_score_pred'])}%")
 
     col2.metric("Lifetime winnings", f"${int(horse_df['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df['log_avg_prize_money'])):,}")

@@ -23,6 +23,8 @@ class RaceModel:
         self._get_dfs()
         if debug:
             self.get_predictions()
+        else:
+            self.horse_df["race_score_pred"] = "N/A"
 
     @property
     def model_cols(self):
@@ -96,13 +98,10 @@ class RaceModel:
             )
             .query("1 < total_prize_money")
             .assign(
+                avg_g1_finish=lambda df: df["avg_g1_finish"].fillna(0),
+                avg_g2_finish=lambda df: np.fmax(df["avg_g1_finish"], df["avg_g2_finish"]).fillna(0),
+                avg_g3_finish=lambda df: np.fmax(df["avg_g2_finish"], df["avg_g3_finish"]).fillna(0),
                 log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
-                # Fills all na PS features with their mean. TODO: Do smarter. Find correlation of race finishes to one another
-                **{
-                    col: lambda d, col=col: d[col].fillna(d[col].mean(numeric_only=True))
-                    for col in self.ps_features
-                    if col != "log_avg_prize_money"
-                },
                 # Harmonic mean of PS features
                 race_score=lambda df: (
                     df[self.ps_features]
@@ -154,7 +153,7 @@ class RaceModel:
         for idx in x.index:
             others = x.drop(idx)
             if len(others) == 0:
-                out[idx] = 0
+                out[idx] = np.nan
             elif stat == "max":
                 out[idx] = others.max()
             elif stat == "min":
@@ -203,9 +202,28 @@ class RaceModel:
 def main():
     race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
 
+    X = race_model.horse_df[race_model.model_cols]
+    y = race_model.horse_df["race_score"]
+
+    # mask = (
+    #     X[
+    #         [
+    #             "avg_sire_sibling_score",
+    #             "avg_siredam_cousin_score",
+    #             "avg_siredam_auntuncle_score",
+    #             "avg_siresire_auntuncle_score",
+    #             "avg_siresire_cousin_score",
+    #         ]
+    #     ]
+    #     .isna()
+    #     .any(axis=1)
+    # )
+    # X = X[~mask]
+    # y = y[~mask]
+
     X_train, X_test, y_train, y_test = train_test_split(
-        race_model.horse_df[race_model.model_cols].fillna(0),
-        race_model.horse_df["race_score"],
+        X,
+        y,
         test_size=0.2,
         random_state=42,
     )
