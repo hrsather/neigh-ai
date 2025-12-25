@@ -113,10 +113,9 @@ class RaceModel:
             )
         )
 
-        self.horse_df = self._add_pedigree_info()
-        self.add_pedigree_stats()
+        self.horse_df = self._add_pedigree_stats()
 
-    def _add_pedigree_info(self):
+    def _get_pedigree_info(self):
         horse_df = (
             self.horse_df.merge(
                 pd.read_csv("/Users/hayden/Downloads/racing_api_horses_202512181100.csv")[
@@ -163,31 +162,29 @@ class RaceModel:
                 out[idx] = others.mean()
         return out
 
-    def add_pedigree_stats(self):
-        dam_stats = self.horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
-        sire_stats = (
-            self.horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
-        )
+    def _add_pedigree_stats(self):
+        horse_df = self._get_pedigree_info()
+
+        dam_stats = horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
+        sire_stats = horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
 
         for stat in ["avg", "max", "min", "std"]:
             for parent in ["dam", "sire"]:
-                self.horse_df[f"{stat}_{parent}_sibling_score"] = self.horse_df.groupby(f"{parent}_id")[
-                    "race_score"
-                ].transform(
+                horse_df[f"{stat}_{parent}_sibling_score"] = horse_df.groupby(f"{parent}_id")["race_score"].transform(
                     lambda x: self._stat_excluding_self(x, stat)  # noqa: B023
                 )
 
                 for gparent in ["dam", "sire"]:
-                    self.horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = self.horse_df.groupby(
-                        f"{parent}{gparent}_id"
-                    )["race_score"].transform(lambda x: self._stat_excluding_self(x, stat))  # noqa: B023
+                    horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = horse_df.groupby(f"{parent}{gparent}_id")[
+                        "race_score"
+                    ].transform(lambda x: self._stat_excluding_self(x, stat))  # noqa: B023
 
                     map_obj = dam_stats if gparent == "dam" else sire_stats
-                    self.horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = self.horse_df[
-                        f"{parent}{gparent}_id"
-                    ].map(map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"])
+                    horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = horse_df[f"{parent}{gparent}_id"].map(
+                        map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"]
+                    )
 
-        return self.horse_df
+        return horse_df
 
 
 def main():
