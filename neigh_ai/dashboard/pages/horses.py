@@ -131,7 +131,6 @@ horse_name = "Please select a horse from the table by clicking the check box"
 state = st.session_state.get(table_key, {})
 rows = state.get("selection", {}).get("rows", [])
 
-# TODO: Pretty print horse tables
 # TODO: Analytics page
 
 if rows:

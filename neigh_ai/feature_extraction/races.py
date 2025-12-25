@@ -116,17 +116,18 @@ class RaceModel:
         self.horse_df = self._add_pedigree_stats()
 
     def _get_pedigree_info(self):
-        horse_df = (
-            self.horse_df.merge(
-                pd.read_csv("/Users/hayden/Downloads/racing_api_horses_202512181100.csv")[
-                    ["racing_api_id", "sire_id", "dam_id", "horse_name"]
-                ],
-                left_on="horse_racing_api_id",
-                right_on="racing_api_id",
-                how="left",
-            )
-            .assign(sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False))
-            .assign(dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False))
+        horse_df = self.horse_df.merge(
+            pd.read_csv("/Users/hayden/Downloads/racing_api_horses_202512181100.csv")[
+                ["racing_api_id", "sire_id", "dam_id", "horse_name"]
+            ],
+            left_on="horse_racing_api_id",
+            right_on="racing_api_id",
+            how="left",
+        ).assign(
+            sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False),
+            dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False),
+            country=lambda d: d["horse_name"].str.extract(r"\((.*?)\)")[0],
+            horse_name=lambda d: d["horse_name"].str.replace(r"\s*\(.*?\)", "", regex=True).str.strip(),
         )
         id_to_dam_id = horse_df.set_index("horse_racing_api_id")["dam_id"]
         id_to_sire_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
