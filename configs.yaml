@@ -18,6 +18,8 @@ not_model_features:
   - num_races
   - racing_api_id
   - sire_id
+  - dam_name
+  - sire_name
   - dam_id
   - damdam_id
   - damdamdam_id

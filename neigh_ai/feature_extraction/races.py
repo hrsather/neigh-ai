@@ -72,8 +72,7 @@ class RaceModel:
             # .query("7 <= distance_furlongs <= 13")
         )
 
-        self.avg_race_speed_model = RandomForestRegressor(max_depth=3)
-        self.avg_race_speed_model.fit(
+        self.avg_race_speed_model = RandomForestRegressor(max_depth=3).fit(
             self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy()
         )
 
@@ -128,18 +127,20 @@ class RaceModel:
             .assign(sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False))
             .assign(dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False))
         )
-        dam_lookup_id = horse_df.set_index("horse_racing_api_id")["dam_id"]
-        sire_lookup_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
-        race_lookup_score = horse_df.set_index("horse_racing_api_id")["race_score"]
+        id_to_dam_id = horse_df.set_index("horse_racing_api_id")["dam_id"]
+        id_to_sire_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
+        id_to_score = horse_df.set_index("horse_racing_api_id")["race_score"]
+        id_to_name = horse_df.set_index("horse_racing_api_id")["horse_name"]
 
         for parent in ["dam", "sire"]:
-            horse_df[f"race_score_{parent}"] = horse_df[f"{parent}_id"].map(race_lookup_score)
+            horse_df[f"race_score_{parent}"] = horse_df[f"{parent}_id"].map(id_to_score)
+            horse_df[f"{parent}_name"] = horse_df[f"{parent}_id"].map(id_to_name)
             for gparent in ["dam", "sire"]:
-                parent_lookup_id = dam_lookup_id if gparent == "dam" else sire_lookup_id
+                parent_lookup_id = id_to_dam_id if gparent == "dam" else id_to_sire_id
                 horse_df[f"{parent}{gparent}_id"] = horse_df[f"{parent}_id"].map(parent_lookup_id)
 
                 for ggparent in ["dam", "sire"]:
-                    parent_lookup_id = dam_lookup_id if ggparent == "dam" else sire_lookup_id
+                    parent_lookup_id = id_to_dam_id if ggparent == "dam" else id_to_sire_id
                     horse_df[f"{parent}{gparent}{ggparent}_id"] = horse_df[f"{parent}{gparent}_id"].map(
                         parent_lookup_id
                     )
