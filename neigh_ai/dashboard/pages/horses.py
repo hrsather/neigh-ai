@@ -84,10 +84,6 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_rac
 
 
 def plot_hist(df: pd.DataFrame, column: str, horse_id: str, title: str) -> None:
-    # Extract the horse's value
-    horse_val = df.loc[df["horse_racing_api_id"] == horse_id, column].item()
-
-    # Create histogram
     fig = px.histogram(
         df,
         x=column,
@@ -95,19 +91,16 @@ def plot_hist(df: pd.DataFrame, column: str, horse_id: str, title: str) -> None:
         opacity=0.7,
     )
 
-    # Add vertical line for selected horse
     fig.add_vline(
-        x=horse_val,
+        x=df.loc[df["horse_racing_api_id"] == horse_id, column].item(),
         line_dash="dash",
         line_color="red",
         annotation_text=horse_id,
         annotation_position="top right",
     )
 
-    # Update layout
     fig.update_layout(xaxis_title=column, yaxis_title="Count", bargap=0.1)
 
-    # Display in Streamlit
     with st.expander(f"{title}: {percentileofscore(df[column], df.iloc[idx][column], kind='rank'):.0f}%"):
         st.plotly_chart(fig, width="stretch")
 
@@ -143,7 +136,7 @@ if rows:
     fig = plot_race_scatter(
         df=race_df,
         horse_racing_api_id=horse_df["horse_racing_api_id"],
-        model=race_model.model,
+        model=race_model.avg_race_speed_model,
         num_races=int(df.iloc[idx]["num_races"]),
     )
 

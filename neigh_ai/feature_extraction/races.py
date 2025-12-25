@@ -73,12 +73,16 @@ class RaceModel:
             # .query("7 <= distance_furlongs <= 13")
         )
 
-        self.model = RandomForestRegressor(max_depth=3)
-        self.model.fit(self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy())
+        self.avg_race_speed_model = RandomForestRegressor(max_depth=3)
+        self.avg_race_speed_model.fit(
+            self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy()
+        )
 
         self.horse_df: pd.DataFrame = (
             self.race_df.assign(
-                predicted_speed=lambda df: self.model.predict(df["distance_meters"].to_numpy().reshape(-1, 1)),
+                predicted_speed=lambda df: self.avg_race_speed_model.predict(
+                    df["distance_meters"].to_numpy().reshape(-1, 1)
+                ),
                 speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
             )
             .groupby("horse_racing_api_id", as_index=False)
