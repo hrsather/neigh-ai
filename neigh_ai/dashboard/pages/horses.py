@@ -21,7 +21,7 @@ category = st.sidebar.selectbox(
 # Cache the data loading so it's only executed once
 @st.cache_data
 def load_race_model():
-    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
+    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"), debug=True)
     return race_model
 
 
@@ -114,7 +114,6 @@ state = st.session_state.get("horse_table", {})
 rows = state.get("selection", {}).get("rows", [])
 
 # TODO: Pretty print horse tables
-# TODO: Add predicted race score
 
 if rows:
     idx = rows[0]
@@ -126,7 +125,10 @@ if rows:
     col1.metric(
         "Race Score Percentile", f"{percentileofscore(df['race_score'], horse_df['race_score'], kind='rank'):.1f}%"
     )
-    col1.metric("Predicted Race Score", f"{46}%")
+    col1.metric(
+        "Predicted Race Score", f"{percentileofscore(df['race_score'], horse_df['race_score_pred'], kind='rank'):.1f}%"
+    )
+    col1.metric("Predicted Race Score", f"{float(horse_df['race_score_pred'])}%")
 
     col2.metric("Lifetime winnings", f"${int(horse_df['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df['log_avg_prize_money'])):,}")

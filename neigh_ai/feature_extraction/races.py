@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 
 class RaceModel:
-    def __init__(self, race_results_path: Path) -> None:
+    def __init__(self, race_results_path: Path, debug=False) -> None:
         self._race_results_path = race_results_path
         with open("configs.yaml") as f:
             config = yaml.safe_load(f)
@@ -21,6 +21,8 @@ class RaceModel:
             self.not_model_features: list[str] = config["not_model_features"]
 
         self._get_dfs()
+        if debug:
+            self.get_predictions()
 
     @property
     def model_cols(self):
@@ -186,6 +188,16 @@ class RaceModel:
                     )
 
         return horse_df
+
+    def get_predictions(self):
+        X = self.horse_df[self.model_cols].fillna(0)
+        y = self.horse_df["race_score"]
+
+        rf = RandomForestRegressor()
+        rf.fit(X, y)
+
+        self.horse_df["race_score_pred"] = rf.predict(X)
+        self.horse_df["race_score_pred_diff"] = self.horse_df["race_score_pred"] - self.horse_df["race_score"]
 
 
 def main():

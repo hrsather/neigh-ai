@@ -7,6 +7,8 @@ performance_score_features:
 
 not_model_features:
   - race_score
+  - race_score_pred
+  - race_score_diff
   - horse_name
   - horse_racing_api_id
   - avg_speed_diff
