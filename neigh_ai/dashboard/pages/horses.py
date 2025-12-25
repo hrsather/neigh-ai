@@ -105,15 +105,34 @@ def plot_hist(df: pd.DataFrame, column: str, horse_id: str, title: str) -> None:
         st.plotly_chart(fig, width="stretch")
 
 
-# Display dataframe
-st.dataframe(df, selection_mode="single-row", width="stretch", key="horse_table", on_select="rerun", hide_index=True)
+def pprint_df(df: pd.DataFrame, key: str) -> None:
+    st.dataframe(
+        df[
+            [
+                *["horse_name", "dam_name", "sire_name", "race_score"],
+                *race_model.model_cols,
+                *race_model.ps_features,
+                "race_score_pred_diff",
+            ]
+        ],
+        selection_mode="single-row",
+        width="stretch",
+        key=key,
+        on_select="rerun",
+        hide_index=True,
+    )
+
+
+table_key = "horse_table"
+pprint_df(df, table_key)
 
 horse_name = "Please select a horse from the table by clicking the check box"
 
-state = st.session_state.get("horse_table", {})
+state = st.session_state.get(table_key, {})
 rows = state.get("selection", {}).get("rows", [])
 
 # TODO: Pretty print horse tables
+# TODO: Analytics page
 
 if rows:
     idx = rows[0]
@@ -169,7 +188,7 @@ if rows:
         ):
             st.subheader(clean_name)
             assert np.isclose(df.iloc[idx][f"avg_{column}"], np.mean(pedigree_df["race_score"]))
-            st.dataframe(pedigree_df, width="stretch", key=column, hide_index=True)
+            pprint_df(pedigree_df, key=column)
 
     # Dam Siblings
     pedigree_charts(
