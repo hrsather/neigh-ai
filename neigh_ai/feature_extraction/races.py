@@ -7,7 +7,7 @@ import yaml
 from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 
@@ -115,6 +115,7 @@ class RaceModel:
         )
 
         self.horse_df = self._add_pedigree_info()
+        self.add_pedigree_stats()
 
     def _add_pedigree_info(self):
         horse_df = (
@@ -133,196 +134,61 @@ class RaceModel:
         sire_lookup_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
         race_lookup_score = horse_df.set_index("horse_racing_api_id")["race_score"]
 
-        # Compute grandparent IDs
-        horse_df["damdam_id"] = horse_df["dam_id"].map(dam_lookup_id)
-        horse_df["siresire_id"] = horse_df["sire_id"].map(sire_lookup_id)
-        horse_df["siredam_id"] = horse_df["sire_id"].map(dam_lookup_id)
-        horse_df["damsire_id"] = horse_df["dam_id"].map(sire_lookup_id)
+        for parent in ["dam", "sire"]:
+            horse_df[f"race_score_{parent}"] = horse_df[f"{parent}_id"].map(race_lookup_score)
+            for gparent in ["dam", "sire"]:
+                parent_lookup_id = dam_lookup_id if gparent == "dam" else sire_lookup_id
+                horse_df[f"{parent}{gparent}_id"] = horse_df[f"{parent}_id"].map(parent_lookup_id)
+                horse_df[f"race_score_{parent}{gparent}"] = horse_df[f"{parent}{gparent}_id"].map(race_lookup_score)
 
-        horse_df["siresiresire_id"] = horse_df["siresire_id"].map(sire_lookup_id)
-        horse_df["siresiredam_id"] = horse_df["siresire_id"].map(dam_lookup_id)
-        horse_df["siredamsire_id"] = horse_df["siredam_id"].map(sire_lookup_id)
-        horse_df["siredamdam_id"] = horse_df["siredam_id"].map(dam_lookup_id)
-        horse_df["damsiresire_id"] = horse_df["damsire_id"].map(sire_lookup_id)
-        horse_df["damsiredam_id"] = horse_df["damsire_id"].map(dam_lookup_id)
-        horse_df["damdamsire_id"] = horse_df["damdam_id"].map(sire_lookup_id)
-        horse_df["damdamdam_id"] = horse_df["damdam_id"].map(dam_lookup_id)
-
-        # Compute uncle/aunts scores
-        dam_lookup_score = horse_df.groupby("dam_id")["race_score"].apply(list)
-        sire_lookup_score = horse_df.groupby("sire_id")["race_score"].apply(list)
-
-        horse_df["avg_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else np.mean(dam_lookup_score[x])
-        )
-        horse_df["avg_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else np.mean(sire_lookup_score[x])
-        )
-        horse_df["avg_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else np.mean(sire_lookup_score[x])
-        )
-        horse_df["avg_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else np.mean(dam_lookup_score[x])
-        )
-
-        horse_df["max_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else max(dam_lookup_score[x])
-        )
-        horse_df["max_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else max(sire_lookup_score[x])
-        )
-        horse_df["max_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else max(sire_lookup_score[x])
-        )
-        horse_df["max_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else max(dam_lookup_score[x])
-        )
-
-        horse_df["min_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else min(dam_lookup_score[x])
-        )
-        horse_df["min_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else min(sire_lookup_score[x])
-        )
-        horse_df["min_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else min(sire_lookup_score[x])
-        )
-        horse_df["min_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else min(dam_lookup_score[x])
-        )
-
-        horse_df["std_damdam_auntuncle_score"] = horse_df["damdam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else float(np.std(dam_lookup_score[x]))
-        )
-        horse_df["std_damsire_auntuncle_score"] = horse_df["damsire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else float(np.std(sire_lookup_score[x]))
-        )
-        horse_df["std_siresire_auntuncle_score"] = horse_df["siresire_id"].map(
-            lambda x: np.nan if x not in sire_lookup_score else float(np.std(sire_lookup_score[x]))
-        )
-        horse_df["std_siredam_auntuncle_score"] = horse_df["siredam_id"].map(
-            lambda x: np.nan if x not in dam_lookup_score else float(np.std(dam_lookup_score[x]))
-        )
-
-        # Compute scores
-        horse_df["race_score_dam"] = horse_df["dam_id"].map(race_lookup_score)
-        horse_df["race_score_sire"] = horse_df["sire_id"].map(race_lookup_score)
-        horse_df["race_score_siredam"] = horse_df["siredam_id"].map(race_lookup_score)
-        horse_df["race_score_siresire"] = horse_df["siresire_id"].map(race_lookup_score)
-        horse_df["race_score_damdam"] = horse_df["damdam_id"].map(race_lookup_score)
-        horse_df["race_score_damsire"] = horse_df["damsire_id"].map(race_lookup_score)
-        horse_df["race_score_siresiresire"] = horse_df["siresiresire_id"].map(race_lookup_score)
-        horse_df["race_score_siresiredam"] = horse_df["siresiredam_id"].map(race_lookup_score)
-        horse_df["race_score_siredamsire"] = horse_df["siredamsire_id"].map(race_lookup_score)
-        horse_df["race_score_siredamdam"] = horse_df["siredamdam_id"].map(race_lookup_score)
-        horse_df["race_score_damsiresire"] = horse_df["damsiresire_id"].map(race_lookup_score)
-        horse_df["race_score_damsiredam"] = horse_df["damsiredam_id"].map(race_lookup_score)
-        horse_df["race_score_damdamsire"] = horse_df["damdamsire_id"].map(race_lookup_score)
-        horse_df["race_score_damdamdam"] = horse_df["damdamdam_id"].map(race_lookup_score)
-
-        horse_df["avg_dam_sibling_score"] = horse_df.groupby(["dam_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-        horse_df["avg_sire_sibling_score"] = horse_df.groupby(["sire_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-        horse_df["avg_damdam_cousin_score"] = horse_df.groupby(["damdam_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-        horse_df["avg_damsire_cousin_score"] = horse_df.groupby(["damsire_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-        horse_df["avg_siresire_cousin_score"] = horse_df.groupby(["siresire_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-        horse_df["avg_siredam_cousin_score"] = horse_df.groupby(["siredam_id"])["race_score"].transform(
-            lambda x: (x.sum() - x) / (len(x) - 1)
-        )
-
-        def max_excluding_self(x):
-            out = pd.Series(index=x.index, dtype=float)
-            for idx in x.index:
-                # drop current index
-                others = x.drop(idx)
-                out[idx] = others.max() if len(others) > 0 else 0
-            return out
-
-        def std_excluding_self(x):
-            out = pd.Series(index=x.index, dtype=float)
-            for idx in x.index:
-                # drop current index
-                others = x.drop(idx)
-                out[idx] = others.std() if len(others) > 0 else 0
-            return out
-
-        def min_excluding_self(x):
-            out = pd.Series(index=x.index, dtype=float)
-            for idx in x.index:
-                # drop current index
-                others = x.drop(idx)
-                out[idx] = others.min() if len(others) > 0 else 0
-            return out
-
-        horse_df["max_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(max_excluding_self)
-        horse_df["max_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(max_excluding_self)
-        horse_df["max_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(max_excluding_self)
-        horse_df["max_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(
-            max_excluding_self
-        )
-        horse_df["max_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(
-            max_excluding_self
-        )
-        horse_df["max_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(
-            max_excluding_self
-        )
-
-        horse_df["std_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(std_excluding_self)
-        horse_df["std_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(std_excluding_self)
-        horse_df["std_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(std_excluding_self)
-        horse_df["std_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(
-            std_excluding_self
-        )
-        horse_df["std_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(
-            std_excluding_self
-        )
-        horse_df["std_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(
-            std_excluding_self
-        )
-
-        horse_df["min_dam_sibling_score"] = horse_df.groupby("dam_id")["race_score"].transform(min_excluding_self)
-        horse_df["min_sire_sibling_score"] = horse_df.groupby("sire_id")["race_score"].transform(min_excluding_self)
-        horse_df["min_damdam_cousin_score"] = horse_df.groupby("damdam_id")["race_score"].transform(min_excluding_self)
-        horse_df["min_damsire_cousin_score"] = horse_df.groupby("damsire_id")["race_score"].transform(
-            min_excluding_self
-        )
-        horse_df["min_siresire_cousin_score"] = horse_df.groupby("siresire_id")["race_score"].transform(
-            min_excluding_self
-        )
-        horse_df["min_siredam_cousin_score"] = horse_df.groupby("siredam_id")["race_score"].transform(
-            min_excluding_self
-        )
-
+                for ggparent in ["dam", "sire"]:
+                    parent_lookup_id = dam_lookup_id if ggparent == "dam" else sire_lookup_id
+                    horse_df[f"{parent}{gparent}{ggparent}_id"] = horse_df[f"{parent}{gparent}_id"].map(
+                        parent_lookup_id
+                    )
         return horse_df
 
+    def _stat_excluding_self(self, x, stat: str):
+        out = pd.Series(index=x.index, dtype=float)
+        for idx in x.index:
+            others = x.drop(idx)
+            if len(others) == 0:
+                out[idx] = 0
+            elif stat == "max":
+                out[idx] = others.max()
+            elif stat == "min":
+                out[idx] = others.std()
+            elif stat == "std":
+                out[idx] = others.min()
+            elif stat == "avg":
+                out[idx] = others.mean()
+        return out
 
-def show_features_info(race_model: RaceModel) -> None:
-    cols = list(set(race_model.feature_cols) - {"race_score"})
-    df = race_model.horse_df[cols]
-    for target_col in cols:
-        plt.hist(df[target_col], bins=50)
-        plt.title(target_col)
-        plt.show()
+    def add_pedigree_stats(self):
+        dam_stats = self.horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
+        sire_stats = (
+            self.horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
+        )
 
-        X = df.drop(columns=[target_col])
-        y = df[target_col]
+        for stat in ["avg", "max", "min", "std"]:
+            for parent in ["dam", "sire"]:
+                self.horse_df[f"{stat}_{parent}_sibling_score"] = self.horse_df.groupby(f"{parent}_id")[
+                    "race_score"
+                ].transform(
+                    lambda x: self._stat_excluding_self(x, stat)  # noqa: B023
+                )
 
-        model = RandomForestRegressor()
-        model.fit(X, y)
-        y_pred = model.predict(X)
-        print(mean_absolute_error(y, y_pred))
+                for gparent in ["dam", "sire"]:
+                    self.horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = self.horse_df.groupby(
+                        f"{parent}{gparent}_id"
+                    )["race_score"].transform(lambda x: self._stat_excluding_self(x, stat))  # noqa: B023
 
-        print(pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False))
-        print()
+                    map_obj = dam_stats if gparent == "dam" else sire_stats
+                    self.horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = self.horse_df[
+                        f"{parent}{gparent}_id"
+                    ].map(map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"])
+
+        return self.horse_df
 
 
 def main():
