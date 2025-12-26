@@ -26,9 +26,15 @@ NO_PEDIGREE_HORSES = "No Pedigree Horses"
 
 def main() -> None:
     st.title("Model Performance")
+    st.sidebar.header("Filters")
 
-    # data = get_data_preds()
-    data = load_data_preds()
+    category = st.sidebar.selectbox(
+        "Select Filter",
+        [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
+    )
+
+    # data = get_data_preds(category)
+    data = load_data_preds(category)
 
     metrics_table(data["y_test"], data["y_pred"], data["y_train"])
 
@@ -41,21 +47,12 @@ def main() -> None:
     correlations_table(data["X"], data["y"], data["importance"])
 
 
-def load_data_preds() -> None:
-    with open("model_performance_data.pkl", "rb") as f:
+def load_data_preds(category: str) -> dict[str, Any]:
+    with open(f"model_performance_data_{category}.pkl", "rb") as f:
         return pickle.load(f)
 
 
-def get_data_preds() -> dict[str, Any]:
-    category = st.sidebar.selectbox(
-        "Select Filter",
-        [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
-    )
-    race_model = load_race_model()
-
-    X = race_model.horse_df[race_model.model_cols]
-    y = race_model.horse_df["race_score"]
-
+def filter_data(category: str, X, y):
     if category == FULL_PEDIGREE_HORSES:
         mask = (
             X[
@@ -89,6 +86,17 @@ def get_data_preds() -> dict[str, Any]:
         X = X[mask]
         y = y[mask]
 
+    return X, y
+
+
+def get_data_preds(category: str) -> dict[str, Any]:
+    race_model = load_race_model()
+
+    X = race_model.horse_df[race_model.model_cols]
+    y = race_model.horse_df["race_score"]
+
+    X, y = filter_data(category, X, y)
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     rf = RandomForestRegressor()
@@ -104,7 +112,7 @@ def get_data_preds() -> dict[str, Any]:
         "importance": rf.feature_importances_,
     }
 
-    with open("model_performance_data.pkl", "wb") as f:
+    with open(f"model_performance_data_{category}.pkl", "wb") as f:
         pickle.dump(data, f)
 
     return data

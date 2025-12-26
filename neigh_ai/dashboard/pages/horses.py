@@ -21,7 +21,6 @@ def load_race_model():
 def main() -> None:
     st.title("Horses")
 
-    st.sidebar.header("Filters")
     race_model = load_race_model()
     pprint_df(race_model.horse_df, TABLE_KEY, race_model)
 

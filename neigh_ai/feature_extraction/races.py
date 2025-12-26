@@ -24,19 +24,21 @@ class RaceModel:
             self.ps_features: list[str] = config["performance_score_features"]
             self.not_model_features: list[str] = config["not_model_features"]
 
-        self.horse_df = pd.read_pickle("horse_df.pkl")
-        self.race_df = pd.read_pickle("race_df.pkl")
-        with open("avg_race_speed_model.pkl", "rb") as f:
-            self.avg_race_speed_model = pickle.load(f)
-        return
+        load_precomputed = True
+        if load_precomputed:
+            self.horse_df = pd.read_pickle("horse_df.pkl")
+            self.race_df = pd.read_pickle("race_df.pkl")
+            with open("avg_race_speed_model.pkl", "rb") as f:
+                self.avg_race_speed_model = pickle.load(f)
+            return
+        else:
+            self._get_dfs()
+            self._fill_race_score_preds()
 
-        self._get_dfs()
-        self._fill_race_score_preds()
-
-        self.horse_df.to_pickle("horse_df.pkl")
-        self.race_df.to_pickle("race_df.pkl")
-        with open("avg_race_speed_model.pkl", "wb") as f:
-            pickle.dump(self.avg_race_speed_model, f)
+            self.horse_df.to_pickle("horse_df.pkl")
+            self.race_df.to_pickle("race_df.pkl")
+            with open("avg_race_speed_model.pkl", "wb") as f:
+                pickle.dump(self.avg_race_speed_model, f)
 
     @property
     def model_cols(self) -> list[str]:
