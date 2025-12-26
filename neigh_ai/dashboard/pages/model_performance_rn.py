@@ -122,8 +122,8 @@ def metrics_table(y_test, y_pred, y_train) -> None:
     col1, col2 = st.columns(2)
     me_mean = mean_absolute_error(y_test, np.full_like(y_test, y_train.mean()))
     me_model = mean_absolute_error(y_test, y_pred)
-    col1.metric("MAE - Model", f"{me_model:.3f}")
-    col2.metric("MAE - Mean baseline", f"{me_mean:.3f}")
+    col1.metric("MAE - Model (less is better)", f"{me_model:.3f}")
+    col2.metric("MAE - Mean baseline (less is better)", f"{me_mean:.3f}")
 
 
 def correlations_table(X, y, importance) -> None:
