@@ -17,8 +17,6 @@ def load_race_model():
     return race_model
 
 
-# TODO: Percentile of races excluding 0
-# TODO: Trim histogram plot
 def main() -> None:
     st.title("Horses")
 
@@ -193,9 +191,9 @@ def plot_hist(
 
 def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel, selectable: bool) -> None:
     cols = [
-        *["horse_name", "dam_name", "sire_name", "race_score", "race_score_pred", "num_races"],
+        *["horse_name", "dam_name", "sire_name", "race_score", "race_score_pred", "num_races", "avg_prize_money"],
         # *race_model.model_cols,
-        *race_model.ps_features,
+        *[col for col in race_model.ps_features if col != "log_avg_prize_money"],
         "race_score_pred_diff",
     ]
 

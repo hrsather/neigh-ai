@@ -14,6 +14,7 @@ class RaceModel:
         self,
         race_results_path: str = "/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv",
         pedigree_info_path: str = "/Users/hayden/Downloads/racing_api_horses_202512181100.csv",
+        load_precomputed: bool = True,
     ) -> None:
         self._race_results_path = Path(race_results_path)
         self._pedigree_info_path = Path(pedigree_info_path)
@@ -24,7 +25,6 @@ class RaceModel:
             self.ps_features: list[str] = config["performance_score_features"]
             self.not_model_features: list[str] = config["not_model_features"]
 
-        load_precomputed = True
         if load_precomputed:
             self.horse_df = pd.read_pickle("horse_df.pkl")
             self.race_df = pd.read_pickle("race_df.pkl")
@@ -99,7 +99,7 @@ class RaceModel:
                 predicted_speed=lambda df: self.avg_race_speed_model.predict(
                     df["distance_meters"].to_numpy().reshape(-1, 1)
                 ),
-                speed_diff=lambda df: (df["speed"] - df["predicted_speed"]) / df["predicted_speed"],
+                speed_diff=lambda df: df["speed"] - df["predicted_speed"],
             )
             .groupby("horse_racing_api_id", as_index=False)
             .agg(

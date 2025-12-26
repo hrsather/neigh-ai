@@ -14,8 +14,8 @@ from neigh_ai.feature_extraction.races import RaceModel
 
 # Cache the data loading so it's only executed once
 @st.cache_data
-def load_race_model():
-    race_model = RaceModel()
+def load_race_model(load_precomputed: bool):
+    race_model = RaceModel(load_precomputed=load_precomputed)
     return race_model
 
 
@@ -33,8 +33,8 @@ def main() -> None:
         [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
     )
 
-    # data = get_data_preds(category)
-    data = load_data_preds(category)
+    load_precomputed = True
+    data = load_data_preds(category) if load_precomputed else get_data_preds(category)
 
     metrics_table(data["y_test"], data["y_pred"], data["y_train"])
 
@@ -90,7 +90,7 @@ def filter_data(category: str, X, y):
 
 
 def get_data_preds(category: str) -> dict[str, Any]:
-    race_model = load_race_model()
+    race_model = load_race_model(load_precomputed=False)
 
     X = race_model.horse_df[race_model.model_cols]
     y = race_model.horse_df["race_score"]
