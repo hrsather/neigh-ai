@@ -97,25 +97,24 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_rac
     st.plotly_chart(fig, width="stretch")
 
 
-def plot_hist(df: pd.DataFrame, column: str, horse_id: str, idx: int, title: str) -> None:
+def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: str, title: str) -> None:
     fig = px.histogram(
-        df,
+        horse_df,
         x=column,
         nbins=50,
         opacity=0.7,
     )
 
     fig.add_vline(
-        x=df.loc[df["horse_racing_api_id"] == horse_id, column].item(),
+        x=horse_df.loc[horse_df["horse_racing_api_id"] == horse_df_selected["horse_racing_api_id"], column].item(),
         line_dash="dash",
         line_color="red",
-        annotation_text=horse_id,
         annotation_position="top right",
     )
 
     fig.update_layout(xaxis_title=column, yaxis_title="Count", bargap=0.1)
 
-    with st.expander(f"{title}: {percentileofscore(df[column], df.iloc[idx][column], kind='rank'):.0f}%"):
+    with st.expander(f"{title}: {percentileofscore(horse_df[column], horse_df_selected[column], kind='rank'):.0f}%"):
         st.plotly_chart(fig, width="stretch")
 
 
@@ -158,60 +157,32 @@ def display(race_model: RaceModel, rows) -> None:
     col2.metric("Lifetime winnings", f"${int(horse_df_selected['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df_selected['log_avg_prize_money'])):,}")
 
-    plot_hist(
-        horse_df, column="race_score", horse_id=horse_df_selected["horse_racing_api_id"], idx=idx, title="Race score"
-    )
+    plot_hist(horse_df, horse_df_selected, column="race_score", title="Race score")
 
     plot_race_scatter(
         df=race_model.race_df,
         horse_racing_api_id=horse_df_selected["horse_racing_api_id"],
         model=race_model.avg_race_speed_model,
-        num_races=int(horse_df.iloc[idx]["num_races"]),
+        num_races=int(horse_df_selected["num_races"]),
     )
 
     st.subheader("Performance Features (by percentile and distribution)")
-    plot_hist(
-        horse_df, column="avg_speed_diff", horse_id=horse_df_selected["horse_racing_api_id"], idx=idx, title="Speed"
-    )
-    plot_hist(
-        horse_df,
-        column="log_avg_prize_money",
-        horse_id=horse_df_selected["horse_racing_api_id"],
-        idx=idx,
-        title="Money per race",
-    )
-    plot_hist(
-        horse_df,
-        column="avg_g1_finish",
-        horse_id=horse_df_selected["horse_racing_api_id"],
-        idx=idx,
-        title="Average G1 Finish",
-    )
-    plot_hist(
-        horse_df,
-        column="avg_g2_finish",
-        horse_id=horse_df_selected["horse_racing_api_id"],
-        idx=idx,
-        title="Average G2 Finish",
-    )
-    plot_hist(
-        horse_df,
-        column="avg_g3_finish",
-        horse_id=horse_df_selected["horse_racing_api_id"],
-        idx=idx,
-        title="Average G3 Finish",
-    )
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_speed_diff", title="Speed")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="log_avg_prize_money", title="Money per race")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g1_finish", title="Average G1 Finish")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g2_finish", title="Average G2 Finish")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g3_finish", title="Average G3 Finish")
 
     # Pedigree charts
     st.subheader("Pedigree Scores (by percentile and distribution)")
 
-    if pd.notna(horse_df.iloc[idx]["race_score_sire"]):
+    if pd.notna(horse_df_selected["race_score_sire"]):
         st.text(
-            f"Sire: {horse_df.iloc[idx]['sire_name']} - {percentileofscore(horse_df['race_score_sire'].dropna(), horse_df.iloc[idx]['race_score_sire'], kind='rank'):.0f}%"
+            f"Sire: {horse_df_selected['sire_name']} - {percentileofscore(horse_df['race_score_sire'].dropna(), horse_df_selected['race_score_sire'], kind='rank'):.0f}%"
         )
-    if pd.notna(horse_df.iloc[idx]["race_score_dam"]):
+    if pd.notna(horse_df_selected["race_score_dam"]):
         st.text(
-            f"Dam: {horse_df.iloc[idx]['dam_name']} - {percentileofscore(horse_df['race_score_dam'].dropna(), horse_df.iloc[idx]['race_score_dam'], kind='rank'):.0f}%"
+            f"Dam: {horse_df_selected['dam_name']} - {percentileofscore(horse_df['race_score_dam'].dropna(), horse_df_selected['race_score_dam'], kind='rank'):.0f}%"
         )
 
     def pedigree_charts(pedigree_df: pd.DataFrame, column: str) -> None:
@@ -219,52 +190,52 @@ def display(race_model: RaceModel, rows) -> None:
         if not len(pedigree_df):
             return
         with st.expander(
-            f"{clean_name}: Avg={percentileofscore(horse_df['race_score'], horse_df.iloc[idx][f'avg_{column}'], kind='rank'):.0f}%, Max={percentileofscore(horse_df['race_score'], horse_df.iloc[idx][f'max_{column}'], kind='rank'):.0f}%"
+            f"{clean_name}: Avg={percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{column}'], kind='rank'):.0f}%, Max={percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{column}'], kind='rank'):.0f}%"
         ):
             st.subheader(clean_name)
-            assert np.isclose(horse_df.iloc[idx][f"avg_{column}"], np.mean(pedigree_df["race_score"]))
+            assert np.isclose(horse_df_selected[f"avg_{column}"], np.mean(pedigree_df["race_score"]))
             pprint_df(df=pedigree_df, key=column, race_model=race_model)
 
     # Dam Siblings
     pedigree_charts(
         horse_df[
-            (horse_df["dam_id"] == horse_df.iloc[idx]["dam_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df.iloc[idx]["horse_racing_api_id"])
+            (horse_df["dam_id"] == horse_df_selected["dam_id"])
+            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
         ],
         "dam_sibling_score",
     )
     # Sire Siblings
     pedigree_charts(
         horse_df[
-            (horse_df["sire_id"] == horse_df.iloc[idx]["sire_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df.iloc[idx]["horse_racing_api_id"])
+            (horse_df["sire_id"] == horse_df_selected["sire_id"])
+            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
         ],
         "sire_sibling_score",
     )
     # Siredam Cousins
     pedigree_charts(
         horse_df[
-            (horse_df["siredam_id"] == horse_df.iloc[idx]["siredam_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df.iloc[idx]["horse_racing_api_id"])
+            (horse_df["siredam_id"] == horse_df_selected["siredam_id"])
+            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
         ],
         "siredam_cousin_score",
     )
     # Siresire Cousins
     pedigree_charts(
         horse_df[
-            (horse_df["siresire_id"] == horse_df.iloc[idx]["siresire_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df.iloc[idx]["horse_racing_api_id"])
+            (horse_df["siresire_id"] == horse_df_selected["siresire_id"])
+            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
         ],
         "siresire_cousin_score",
     )
     # Siresire Aunt/Uncle
     pedigree_charts(
-        horse_df[horse_df["sire_id"] == horse_df.iloc[idx]["siresire_id"]],
+        horse_df[horse_df["sire_id"] == horse_df_selected["siresire_id"]],
         "siresire_auntuncle_score",
     )
     # Siredam Aunt/Uncle
     pedigree_charts(
-        horse_df[horse_df["dam_id"] == horse_df.iloc[idx]["siredam_id"]],
+        horse_df[horse_df["dam_id"] == horse_df_selected["siredam_id"]],
         "siredam_auntuncle_score",
     )
 
