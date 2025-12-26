@@ -15,7 +15,7 @@ TABLE_KEY = "horse_table"
 # Cache the data loading so it's only executed once
 @st.cache_data
 def load_race_model():
-    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"), debug=True)
+    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
     return race_model
 
 
@@ -200,11 +200,15 @@ def display(race_model: RaceModel, rows) -> None:
 def damsire_pedigree_charts(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, dam_sire: str) -> None:
     if pd.isna(horse_df_selected[f"race_score_{dam_sire}"]):
         return
+
     st.text(
-        f"{dam_sire.title()}: {horse_df_selected[f'{dam_sire}_name']} - "
+        f"{dam_sire.title()}: "
+        f"{horse_df_selected[f'{dam_sire}_name']} - "
         f"{
             percentileofscore(
-                horse_df[f'race_score_{dam_sire}'].dropna(), horse_df_selected[f'race_score_{dam_sire}'], kind='rank'
+                horse_df[f'race_score_{dam_sire}'].dropna(),
+                horse_df_selected[f'race_score_{dam_sire}'],
+                kind='rank',
             ):.0f
         }%"
     )
@@ -227,12 +231,8 @@ def pedigree_charts(
         return
     with st.expander(
         f"{clean_name}: "
-        f"Avg={
-            percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f
-        }%, "
-        f"Max={
-            percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f
-        }%"
+        f"Avg={percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f}%, "
+        f"Max={percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f}%"
     ):
         st.subheader(clean_name)
         assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
