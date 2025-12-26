@@ -27,7 +27,7 @@ class RaceModel:
             self.horse_df["race_score_pred"] = "N/A"
 
     @property
-    def model_cols(self):
+    def model_cols(self) -> list[str]:
         ps_features: list[str] = []
         for col in list(set(self.horse_df.columns) - set(self.not_model_features)):
             num_na_rows = self.horse_df[col].isna().sum()
@@ -149,7 +149,7 @@ class RaceModel:
         return horse_df
 
     @classmethod
-    def _stat_excluding_self(cls, x, stat: str):
+    def _stat_excluding_self(cls, x, stat: str) -> pd.Series:
         out = pd.Series(index=x.index, dtype=float)
         for idx in x.index:
             others = x.drop(idx)
@@ -165,7 +165,7 @@ class RaceModel:
                 out[idx] = others.mean()
         return out
 
-    def _add_pedigree_stats(self):
+    def _add_pedigree_stats(self) -> pd.DataFrame:
         horse_df = self._get_pedigree_info()
 
         dam_stats = horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
