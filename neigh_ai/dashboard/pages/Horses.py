@@ -17,7 +17,7 @@ def load_race_model():
     return race_model
 
 
-# TODO: Analytics page. Show performance with no pedigree and all.
+# TODO: Percentile of races excluding 0
 def main() -> None:
     st.title("Horses")
 
@@ -29,16 +29,18 @@ def main() -> None:
 
 def show_hide_horse_info(race_model) -> None:
     state = st.session_state.get(TABLE_KEY, {})
+    rows = state.get("selection", {}).get("rows", [])
 
-    if state.get("selection", {}).get("rows", []):
-        display(race_model)
+    if rows:
+        display(race_model, rows[0])
     else:
         st.write("_Click a row above to see details here_")
 
 
-def display(race_model: RaceModel) -> None:
+def display(race_model: RaceModel, horse_idx: int) -> None:
     horse_df = race_model.horse_df
-    horse_df_selected = horse_df.iloc[0]
+
+    horse_df_selected = horse_df.iloc[horse_idx]
 
     st.subheader(horse_df_selected["horse_name"])
 
