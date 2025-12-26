@@ -129,9 +129,19 @@ def metrics_table(y_test, y_pred, y_train) -> None:
 def correlations_table(X, y, importance) -> None:
     correlations = X.corrwith(y).rename("correlation_to_y")
     importances = pd.Series(importance, index=X.columns, name="rf_importance")
-    feature_table = pd.concat([correlations, importances], axis=1)
-    feature_table = feature_table.sort_values("correlation_to_y", ascending=False)
-    st.dataframe(feature_table)
+    feature_table = (
+        pd.concat([correlations, importances], axis=1)
+        .reset_index()
+        .rename(
+            columns={
+                "index": "Feature",
+                "correlation_to_y": "Correlation to Race Score",
+                "rf_importance": "Model Feature Importance",
+            }
+        )
+        .sort_values("Correlation to Race Score", ascending=False)
+    )
+    st.dataframe(feature_table, hide_index=True)
 
 
 def percentage_table(y_test, y_pred) -> None:
@@ -164,7 +174,7 @@ def percentage_table(y_test, y_pred) -> None:
     table = pd.DataFrame(rows)
 
     # Display in Streamlit
-    st.dataframe(table)
+    st.dataframe(table, hide_index=True)
 
 
 def plot_preds_vs_gt(y_test, y_pred) -> None:
@@ -193,8 +203,8 @@ def plot_preds_vs_gt(y_test, y_pred) -> None:
     )
 
     fig.update_layout(
-        title="Random Forest Predictions vs Actual",
-        xaxis_title="Actual Race Score",
+        title="Model Predictions vs Ground Truth",
+        xaxis_title="True Race Score",
         yaxis_title="Predicted Race Score",
         xaxis={"range": [-2, 2]},
         yaxis={"range": [-2, 2]},

@@ -22,7 +22,7 @@ def main() -> None:
     st.title("Horses")
 
     race_model = load_race_model()
-    pprint_df(race_model.horse_df, TABLE_KEY, race_model)
+    pprint_df(race_model.horse_df, TABLE_KEY, race_model, selectable=True)
 
     show_hide_horse_info(race_model)
 
@@ -143,22 +143,27 @@ def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: s
         st.plotly_chart(fig, width="stretch")
 
 
-def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel) -> None:
-    st.dataframe(
-        df[
-            [
-                *["horse_name", "dam_name", "sire_name", "race_score"],
-                *race_model.model_cols,
-                *race_model.ps_features,
-                "race_score_pred_diff",
-            ]
-        ],
-        selection_mode="single-row",
-        width="stretch",
-        key=key,
-        on_select="rerun",
-        hide_index=True,
-    )
+def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel, selectable: bool) -> None:
+    cols = [
+        *["horse_name", "dam_name", "sire_name", "race_score"],
+        *race_model.model_cols,
+        *race_model.ps_features,
+        "race_score_pred_diff",
+    ]
+
+    dataframe_kwargs = {
+        "data": df[cols],
+        "key": key,
+        "hide_index": True,
+    }
+
+    if selectable:
+        dataframe_kwargs.update(
+            selection_mode="single-row",
+            on_select="rerun",
+        )
+
+    st.dataframe(**dataframe_kwargs)
 
 
 def show_tables(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame) -> None:
@@ -211,7 +216,7 @@ def pedigree_charts(
     ):
         st.subheader(clean_name)
         assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
-        pprint_df(df=relatives_df, key=new_column_name, race_model=race_model)
+        pprint_df(df=relatives_df, key=new_column_name, race_model=race_model, selectable=False)
 
 
 if __name__ == "__main__":
