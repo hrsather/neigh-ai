@@ -53,9 +53,7 @@ def display(race_model: RaceModel) -> None:
 
     plot_hist(horse_df, horse_df_selected, column="race_score", title="Race score")
 
-    plot_race_scatter(
-        race_df=race_model.race_df, horse_df_selected=horse_df_selected, model=race_model.avg_race_speed_model
-    )
+    plot_race_scatter(race_model, horse_df_selected)
 
     st.subheader("Performance Features (by percentile and distribution)")
     plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_speed_diff", title="Speed")
@@ -88,12 +86,11 @@ def display(race_model: RaceModel) -> None:
         )
 
 
-def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
-    horse_racing_api_id: str = horse_df_selected["horse_racing_api_id"]
-    num_races: int = int(horse_df_selected["num_races"])
+def plot_race_scatter(race_model: RaceModel, horse_df_selected: pd.DataFrame) -> None:
+    race_df = race_model.race_df
     fig = go.Figure()
 
-    df_other = race_df[race_df["horse_racing_api_id"] != horse_racing_api_id]
+    df_other = race_df[race_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"]]
     fig.add_trace(
         go.Scattergl(
             x=df_other["distance_meters"],
@@ -102,28 +99,27 @@ def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
             marker={"color": "blue", "opacity": 0.5},
             name="Other horses",
             text=df_other["horse_racing_api_id"],
-            hovertemplate="Horse: %{text}<br>Distance: %{x}<br>Speed: %{y}<extra></extra>",
         )
     )
 
     # Scatter for selected horse
-    horse_df_selected = race_df[race_df["horse_racing_api_id"] == horse_racing_api_id]
+    race_df_selected = race_df[race_df["horse_racing_api_id"] == horse_df_selected["horse_racing_api_id"]]
     fig.add_trace(
         go.Scattergl(
-            x=horse_df_selected["distance_meters"],
-            y=horse_df_selected["speed"],
+            x=race_df_selected["distance_meters"],
+            y=race_df_selected["speed"],
             mode="markers",
             marker={"color": "red", "size": 12, "line": {"color": "darkred", "width": 2}},
             name="Selected horse",
-            text=horse_df_selected["horse_racing_api_id"],
-            hovertemplate="Horse: %{text}<br>Distance: %{x}<br>Speed: %{y}<extra></extra>",
+            text=race_df_selected["horse_racing_api_id"],
+            hovertemplate="Horse: %{text}<br>",
         )
     )
 
     # Add predictions
     df_sorted = race_df.sort_values("distance_meters")
     X = df_sorted["distance_meters"].to_numpy().reshape(-1, 1)
-    y_pred = model.predict(X)
+    y_pred = race_model.avg_race_speed_model.predict(X)
     fig.add_trace(
         go.Scattergl(
             x=df_sorted["distance_meters"],
@@ -138,7 +134,7 @@ def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
         yaxis_title="Speed (m/s)",
         legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99},
         template="plotly_white",
-        title=f"Race Speeds over a career of {num_races} races",
+        title=f"Race Speeds over a career of {len(race_df_selected)} races",
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -154,7 +150,7 @@ def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: s
         st.plotly_chart(fig, width="stretch")
 
 
-def pprint_df(df: pd.DataFrame, key: str, race_model) -> None:
+def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel) -> None:
     st.dataframe(
         df[
             [
