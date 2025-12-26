@@ -17,6 +17,7 @@ not_model_features:
   - avg_g2_finish
   - avg_g3_finish
   - log_avg_prize_money
+  - avg_prize_money
   - total_prize_money
   - num_races
   - racing_api_id

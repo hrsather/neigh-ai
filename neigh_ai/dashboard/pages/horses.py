@@ -176,33 +176,10 @@ def display(race_model: RaceModel, rows) -> None:
     # Pedigree charts
     st.subheader("Pedigree Scores (by percentile and distribution)")
 
-    if pd.notna(horse_df_selected["race_score_sire"]):
-        st.text(
-            f"Sire: {horse_df_selected['sire_name']} - {percentileofscore(horse_df['race_score_sire'].dropna(), horse_df_selected['race_score_sire'], kind='rank'):.0f}%"
-        )
-    if pd.notna(horse_df_selected["race_score_dam"]):
-        st.text(
-            f"Dam: {horse_df_selected['dam_name']} - {percentileofscore(horse_df['race_score_dam'].dropna(), horse_df_selected['race_score_dam'], kind='rank'):.0f}%"
-        )
+    for dam_sire in ["dam", "sire"]:
+        damsire_pedigree_charts(horse_df=horse_df, horse_df_selected=horse_df_selected, dam_sire=dam_sire)
 
-    def pedigree_charts(
-        horse_df: pd.DataFrame, horse_df_key: str, horse_df_selected_key: str, new_column_name: str
-    ) -> None:
-        relatives_df = horse_df[
-            (horse_df[horse_df_key] == horse_df_selected[horse_df_selected_key])
-            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
-        ]
-        clean_name: str = new_column_name.replace("_", " ").title()
-        if not len(relatives_df):
-            return
-        with st.expander(
-            f"{clean_name}: Avg={percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f}%, Max={percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f}%"
-        ):
-            st.subheader(clean_name)
-            assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
-            pprint_df(df=relatives_df, key=new_column_name, race_model=race_model)
-
-    for horse_df_key, horse_df_selected_key, score_name in [
+    for horse_df_key, horse_df_selected_key, new_column_name in [
         ("dam_id", "dam_id", "dam_sibling_score"),
         ("sire_id", "sire_id", "sire_sibling_score"),
         ("siredam_id", "siredam_id", "siredam_cousin_score"),
@@ -210,7 +187,56 @@ def display(race_model: RaceModel, rows) -> None:
         ("dam_id", "siredam_id", "siredam_auntuncle_score"),
         ("sire_id", "siresire_id", "siresire_auntuncle_score"),
     ]:
-        pedigree_charts(horse_df, horse_df_key, horse_df_selected_key, score_name)
+        pedigree_charts(
+            horse_df=horse_df,
+            horse_df_selected=horse_df_selected,
+            horse_df_key=horse_df_key,
+            horse_df_selected_key=horse_df_selected_key,
+            new_column_name=new_column_name,
+            race_model=race_model,
+        )
+
+
+def damsire_pedigree_charts(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, dam_sire: str) -> None:
+    if pd.isna(horse_df_selected[f"race_score_{dam_sire}"]):
+        return
+    st.text(
+        f"{dam_sire.title()}: {horse_df_selected[f'{dam_sire}_name']} - "
+        f"{
+            percentileofscore(
+                horse_df[f'race_score_{dam_sire}'].dropna(), horse_df_selected[f'race_score_{dam_sire}'], kind='rank'
+            ):.0f
+        }%"
+    )
+
+
+def pedigree_charts(
+    horse_df: pd.DataFrame,
+    horse_df_selected: pd.DataFrame,
+    horse_df_key: str,
+    horse_df_selected_key: str,
+    new_column_name: str,
+    race_model: RaceModel,
+) -> None:
+    relatives_df = horse_df[
+        (horse_df[horse_df_key] == horse_df_selected[horse_df_selected_key])
+        & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
+    ]
+    clean_name: str = new_column_name.replace("_", " ").title()
+    if not len(relatives_df):
+        return
+    with st.expander(
+        f"{clean_name}: "
+        f"Avg={
+            percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f
+        }%, "
+        f"Max={
+            percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f
+        }%"
+    ):
+        st.subheader(clean_name)
+        assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
+        pprint_df(df=relatives_df, key=new_column_name, race_model=race_model)
 
 
 if __name__ == "__main__":

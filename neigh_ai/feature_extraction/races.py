@@ -101,6 +101,7 @@ class RaceModel:
                 avg_g1_finish=lambda df: df["avg_g1_finish"].fillna(0),
                 avg_g2_finish=lambda df: np.fmax(df["avg_g1_finish"], df["avg_g2_finish"]).fillna(0),
                 avg_g3_finish=lambda df: np.fmax(df["avg_g2_finish"], df["avg_g3_finish"]).fillna(0),
+                avg_prize_money=lambda df: df["total_prize_money"] / df["num_races"],
                 log_avg_prize_money=lambda df: np.log(df["total_prize_money"] / df["num_races"]),
                 # Harmonic mean of PS features
                 race_score=lambda df: (
