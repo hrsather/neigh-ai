@@ -1,27 +1,42 @@
+import pickle
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
 from pandas._libs import NaTType
 from scipy.stats import hmean, zscore
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
 
 
 class RaceModel:
-    def __init__(self, race_results_path: Path) -> None:
-        self._race_results_path = race_results_path
+    def __init__(
+        self,
+        race_results_path: str = "/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv",
+        pedigree_info_path: str = "/Users/hayden/Downloads/racing_api_horses_202512181100.csv",
+    ) -> None:
+        self._race_results_path = Path(race_results_path)
+        self._pedigree_info_path = Path(pedigree_info_path)
+
         with open("configs.yaml") as f:
             config = yaml.safe_load(f)
 
             self.ps_features: list[str] = config["performance_score_features"]
             self.not_model_features: list[str] = config["not_model_features"]
 
+        self.horse_df = pd.read_pickle("horse_df.pkl")
+        self.race_df = pd.read_pickle("race_df.pkl")
+        with open("avg_race_speed_model.pkl", "rb") as f:
+            self.avg_race_speed_model = pickle.load(f)
+        return
+
         self._get_dfs()
         self._fill_race_score_preds()
+
+        self.horse_df.to_pickle("horse_df.pkl")
+        self.race_df.to_pickle("race_df.pkl")
+        with open("avg_race_speed_model.pkl", "wb") as f:
+            pickle.dump(self.avg_race_speed_model, f)
 
     @property
     def model_cols(self) -> list[str]:
@@ -115,9 +130,7 @@ class RaceModel:
 
     def _get_pedigree_info(self):
         horse_df = self.horse_df.merge(
-            pd.read_csv("/Users/hayden/Downloads/racing_api_horses_202512181100.csv")[
-                ["racing_api_id", "sire_id", "dam_id", "horse_name"]
-            ],
+            pd.read_csv(self._pedigree_info_path)[["racing_api_id", "sire_id", "dam_id", "horse_name"]],
             left_on="horse_racing_api_id",
             right_on="racing_api_id",
             how="left",
@@ -196,54 +209,3 @@ class RaceModel:
 
         self.horse_df["race_score_pred"] = rf.predict(X)
         self.horse_df["race_score_pred_diff"] = self.horse_df["race_score_pred"] - self.horse_df["race_score"]
-
-
-def main():
-    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
-
-    X = race_model.horse_df[race_model.model_cols]
-    y = race_model.horse_df["race_score"]
-
-    # mask = (
-    #     X[
-    #         [
-    #             "avg_sire_sibling_score",
-    #             "avg_siredam_cousin_score",
-    #             "avg_siredam_auntuncle_score",
-    #             "avg_siresire_auntuncle_score",
-    #             "avg_siresire_cousin_score",
-    #         ]
-    #     ]
-    #     .isna()
-    #     .any(axis=1)
-    # )
-    # X = X[~mask]
-    # y = y[~mask]
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-    )
-
-    rf = RandomForestRegressor()
-    rf.fit(X_train, y_train)
-    y_pred = rf.predict(X_test)
-
-    plt.figure(figsize=(8, 6))
-    plt.scatter(y_test, y_pred, alpha=0.6, color="blue", edgecolor="k")
-    plt.xlabel("Actual Race Score")
-    plt.ylabel("Predicted Race Score")
-    plt.title("Random Forest Predictions vs Actual")
-    plt.grid(True)
-    plt.show()
-
-    me_mean = mean_squared_error(y_test, np.full_like(y_test, y_train.mean()))
-    me_model = mean_squared_error(y_test, y_pred)
-
-    print(f"MSE - Model: {me_model:.3f}, Mean baseline: {me_mean:.3f}")
-
-
-if __name__ == "__main__":
-    main()

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -15,7 +13,7 @@ TABLE_KEY = "horse_table"
 # Cache the data loading so it's only executed once
 @st.cache_data
 def load_race_model():
-    race_model = RaceModel(Path("/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv"))
+    race_model = RaceModel()
     return race_model
 
 
@@ -24,10 +22,6 @@ def main() -> None:
     st.title("Horses")
 
     st.sidebar.header("Filters")
-    # category = st.sidebar.selectbox(
-    #     "Select category",
-    #     ["A", "B", "C"],
-    # )
     race_model = load_race_model()
     pprint_df(race_model.horse_df, TABLE_KEY, race_model)
 
