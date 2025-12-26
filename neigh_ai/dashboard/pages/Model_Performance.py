@@ -33,8 +33,8 @@ def main() -> None:
         [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
     )
 
-    # data = get_data_preds(category)
-    data = load_data_preds(category)
+    data = get_data_preds(category)
+    # data = load_data_preds(category)
 
     metrics_table(data["y_test"], data["y_pred"], data["y_train"])
 

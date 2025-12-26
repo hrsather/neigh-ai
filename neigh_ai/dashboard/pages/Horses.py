@@ -18,6 +18,7 @@ def load_race_model():
 
 
 # TODO: Percentile of races excluding 0
+# TODO: Trim histogram plot
 def main() -> None:
     st.title("Horses")
 
@@ -52,10 +53,36 @@ def display(race_model: RaceModel, horse_idx: int) -> None:
 
     st.subheader("Performance Features (by percentile and distribution)")
     plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_speed_diff", title="Speed")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="log_avg_prize_money", title="Money per race")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g1_finish", title="Average G1 Finish")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g2_finish", title="Average G2 Finish")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g3_finish", title="Average G3 Finish")
+    plot_hist(
+        horse_df,
+        horse_df_selected=horse_df_selected,
+        column="log_avg_prize_money",
+        title="Money per race",
+    )
+    plot_hist(
+        horse_df,
+        horse_df_selected=horse_df_selected,
+        column="avg_g1_finish",
+        title="Average G1 Finish",
+        hide_zero=True,
+        n_bins=10,
+    )
+    plot_hist(
+        horse_df,
+        horse_df_selected=horse_df_selected,
+        column="avg_g2_finish",
+        title="Average G2 Finish",
+        hide_zero=True,
+        n_bins=10,
+    )
+    plot_hist(
+        horse_df,
+        horse_df_selected=horse_df_selected,
+        column="avg_g3_finish",
+        title="Average G3 Finish",
+        hide_zero=True,
+        n_bins=10,
+    )
 
     # Pedigree charts
     st.subheader("Pedigree Scores (by percentile and distribution)")
@@ -134,21 +161,40 @@ def plot_race_scatter(race_model: RaceModel, horse_df_selected: pd.DataFrame) ->
     st.plotly_chart(fig, width="stretch")
 
 
-def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: str, title: str) -> None:
-    fig = px.histogram(horse_df, x=column, nbins=50, opacity=0.7)
+def plot_hist(
+    horse_df: pd.DataFrame,
+    horse_df_selected: pd.DataFrame,
+    column: str,
+    title: str,
+    hide_zero: bool = False,
+    n_bins: int = 50,
+) -> None:
+    horse_df_filtered = horse_df[horse_df[column].between(*horse_df[column].quantile([0.001, 0.999]))]
+
+    if hide_zero:
+        horse_df_filtered = horse_df_filtered[horse_df_filtered[column] != 0]
+
+    fig = px.histogram(
+        horse_df_filtered,
+        x=column,
+        nbins=n_bins,
+        opacity=0.7,
+    )
 
     fig.add_vline(x=horse_df_selected[column], line_dash="dash", line_color="red")
 
-    fig.update_layout(xaxis_title=column, yaxis_title="Count", bargap=0.1)
+    fig.update_layout(xaxis_title=column.replace("_", " ").title(), yaxis_title="Count", bargap=0.1)
 
-    with st.expander(f"{title}: {percentileofscore(horse_df[column], horse_df_selected[column], kind='rank'):.0f}%"):
+    with st.expander(
+        f"{title}: {percentileofscore(horse_df_filtered[column], horse_df_selected[column], kind='rank'):.0f}%"
+    ):
         st.plotly_chart(fig, width="stretch")
 
 
 def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel, selectable: bool) -> None:
     cols = [
-        *["horse_name", "dam_name", "sire_name", "race_score"],
-        *race_model.model_cols,
+        *["horse_name", "dam_name", "sire_name", "race_score", "race_score_pred", "num_races"],
+        # *race_model.model_cols,
         *race_model.ps_features,
         "race_score_pred_diff",
     ]
@@ -180,7 +226,7 @@ def show_tables(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame) -> None
         f"{percentileofscore(horse_df['race_score'], horse_df_selected['race_score_pred'], kind='rank'):.1f}%",
     )
     col2.metric("Lifetime winnings", f"${int(horse_df_selected['total_prize_money']):,}")
-    col2.metric("Avg winnings per race", f"${int(np.exp(horse_df_selected['log_avg_prize_money'])):,}")
+    col2.metric("Avg winnings per race", f"${int(horse_df_selected['avg_prize_money']):,}")
 
 
 def damsire_pedigree_charts(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, dam_sire: str) -> None:
