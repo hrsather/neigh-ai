@@ -201,17 +201,13 @@ def damsire_pedigree_charts(horse_df: pd.DataFrame, horse_df_selected: pd.DataFr
     if pd.isna(horse_df_selected[f"race_score_{dam_sire}"]):
         return
 
-    st.text(
-        f"{dam_sire.title()}: "
-        f"{horse_df_selected[f'{dam_sire}_name']} - "
-        f"{
-            percentileofscore(
-                horse_df[f'race_score_{dam_sire}'].dropna(),
-                horse_df_selected[f'race_score_{dam_sire}'],
-                kind='rank',
-            ):.0f
-        }%"
+    pct = percentileofscore(
+        horse_df[f"race_score_{dam_sire}"].dropna(),
+        horse_df_selected[f"race_score_{dam_sire}"],
+        kind="rank",
     )
+
+    st.text(f"{dam_sire.title()}: {horse_df_selected[f'{dam_sire}_name']} - {pct:.0f}%")
 
 
 def pedigree_charts(
