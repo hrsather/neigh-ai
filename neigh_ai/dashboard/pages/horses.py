@@ -43,6 +43,51 @@ def show_hide_horse_info(race_model) -> None:
         st.write("_Click a row above to see details here_")
 
 
+def display(race_model: RaceModel) -> None:
+    horse_df = race_model.horse_df
+    horse_df_selected = horse_df.iloc[0]
+
+    st.subheader(horse_df_selected["horse_name"])
+
+    show_tables(horse_df, horse_df_selected)
+
+    plot_hist(horse_df, horse_df_selected, column="race_score", title="Race score")
+
+    plot_race_scatter(
+        race_df=race_model.race_df, horse_df_selected=horse_df_selected, model=race_model.avg_race_speed_model
+    )
+
+    st.subheader("Performance Features (by percentile and distribution)")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_speed_diff", title="Speed")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="log_avg_prize_money", title="Money per race")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g1_finish", title="Average G1 Finish")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g2_finish", title="Average G2 Finish")
+    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g3_finish", title="Average G3 Finish")
+
+    # Pedigree charts
+    st.subheader("Pedigree Scores (by percentile and distribution)")
+
+    for dam_sire in ["dam", "sire"]:
+        damsire_pedigree_charts(horse_df=horse_df, horse_df_selected=horse_df_selected, dam_sire=dam_sire)
+
+    for horse_df_key, horse_df_selected_key, new_column_name in [
+        ("dam_id", "dam_id", "dam_sibling_score"),
+        ("sire_id", "sire_id", "sire_sibling_score"),
+        ("siredam_id", "siredam_id", "siredam_cousin_score"),
+        ("siresire_id", "siresire_id", "siresire_cousin_score"),
+        ("dam_id", "siredam_id", "siredam_auntuncle_score"),
+        ("sire_id", "siresire_id", "siresire_auntuncle_score"),
+    ]:
+        pedigree_charts(
+            horse_df=horse_df,
+            horse_df_selected=horse_df_selected,
+            horse_df_key=horse_df_key,
+            horse_df_selected_key=horse_df_selected_key,
+            new_column_name=new_column_name,
+            race_model=race_model,
+        )
+
+
 def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
     horse_racing_api_id: str = horse_df_selected["horse_racing_api_id"]
     num_races: int = int(horse_df_selected["num_races"])
@@ -138,54 +183,8 @@ def show_tables(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame) -> None
         "Predicted Race Score",
         f"{percentileofscore(horse_df['race_score'], horse_df_selected['race_score_pred'], kind='rank'):.1f}%",
     )
-
     col2.metric("Lifetime winnings", f"${int(horse_df_selected['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df_selected['log_avg_prize_money'])):,}")
-
-
-def display(race_model: RaceModel) -> None:
-    horse_df = race_model.horse_df
-    horse_df_selected = horse_df.iloc[0]
-
-    st.subheader(horse_df_selected["horse_name"])
-
-    show_tables(horse_df, horse_df_selected)
-
-    plot_hist(horse_df, horse_df_selected, column="race_score", title="Race score")
-
-    plot_race_scatter(
-        race_df=race_model.race_df, horse_df_selected=horse_df_selected, model=race_model.avg_race_speed_model
-    )
-
-    st.subheader("Performance Features (by percentile and distribution)")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_speed_diff", title="Speed")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="log_avg_prize_money", title="Money per race")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g1_finish", title="Average G1 Finish")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g2_finish", title="Average G2 Finish")
-    plot_hist(horse_df, horse_df_selected=horse_df_selected, column="avg_g3_finish", title="Average G3 Finish")
-
-    # Pedigree charts
-    st.subheader("Pedigree Scores (by percentile and distribution)")
-
-    for dam_sire in ["dam", "sire"]:
-        damsire_pedigree_charts(horse_df=horse_df, horse_df_selected=horse_df_selected, dam_sire=dam_sire)
-
-    for horse_df_key, horse_df_selected_key, new_column_name in [
-        ("dam_id", "dam_id", "dam_sibling_score"),
-        ("sire_id", "sire_id", "sire_sibling_score"),
-        ("siredam_id", "siredam_id", "siredam_cousin_score"),
-        ("siresire_id", "siresire_id", "siresire_cousin_score"),
-        ("dam_id", "siredam_id", "siredam_auntuncle_score"),
-        ("sire_id", "siresire_id", "siresire_auntuncle_score"),
-    ]:
-        pedigree_charts(
-            horse_df=horse_df,
-            horse_df_selected=horse_df_selected,
-            horse_df_key=horse_df_key,
-            horse_df_selected_key=horse_df_selected_key,
-            new_column_name=new_column_name,
-            race_model=race_model,
-        )
 
 
 def damsire_pedigree_charts(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, dam_sire: str) -> None:
