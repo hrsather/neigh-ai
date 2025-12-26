@@ -185,59 +185,32 @@ def display(race_model: RaceModel, rows) -> None:
             f"Dam: {horse_df_selected['dam_name']} - {percentileofscore(horse_df['race_score_dam'].dropna(), horse_df_selected['race_score_dam'], kind='rank'):.0f}%"
         )
 
-    def pedigree_charts(pedigree_df: pd.DataFrame, column: str) -> None:
-        clean_name: str = column.replace("_", " ").title()
-        if not len(pedigree_df):
+    def pedigree_charts(
+        horse_df: pd.DataFrame, horse_df_key: str, horse_df_selected_key: str, new_column_name: str
+    ) -> None:
+        relatives_df = horse_df[
+            (horse_df[horse_df_key] == horse_df_selected[horse_df_selected_key])
+            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
+        ]
+        clean_name: str = new_column_name.replace("_", " ").title()
+        if not len(relatives_df):
             return
         with st.expander(
-            f"{clean_name}: Avg={percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{column}'], kind='rank'):.0f}%, Max={percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{column}'], kind='rank'):.0f}%"
+            f"{clean_name}: Avg={percentileofscore(horse_df['race_score'], horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f}%, Max={percentileofscore(horse_df['race_score'], horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f}%"
         ):
             st.subheader(clean_name)
-            assert np.isclose(horse_df_selected[f"avg_{column}"], np.mean(pedigree_df["race_score"]))
-            pprint_df(df=pedigree_df, key=column, race_model=race_model)
+            assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
+            pprint_df(df=relatives_df, key=new_column_name, race_model=race_model)
 
-    # Dam Siblings
-    pedigree_charts(
-        horse_df[
-            (horse_df["dam_id"] == horse_df_selected["dam_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
-        ],
-        "dam_sibling_score",
-    )
-    # Sire Siblings
-    pedigree_charts(
-        horse_df[
-            (horse_df["sire_id"] == horse_df_selected["sire_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
-        ],
-        "sire_sibling_score",
-    )
-    # Siredam Cousins
-    pedigree_charts(
-        horse_df[
-            (horse_df["siredam_id"] == horse_df_selected["siredam_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
-        ],
-        "siredam_cousin_score",
-    )
-    # Siresire Cousins
-    pedigree_charts(
-        horse_df[
-            (horse_df["siresire_id"] == horse_df_selected["siresire_id"])
-            & (horse_df["horse_racing_api_id"] != horse_df_selected["horse_racing_api_id"])
-        ],
-        "siresire_cousin_score",
-    )
-    # Siresire Aunt/Uncle
-    pedigree_charts(
-        horse_df[horse_df["sire_id"] == horse_df_selected["siresire_id"]],
-        "siresire_auntuncle_score",
-    )
-    # Siredam Aunt/Uncle
-    pedigree_charts(
-        horse_df[horse_df["dam_id"] == horse_df_selected["siredam_id"]],
-        "siredam_auntuncle_score",
-    )
+    for horse_df_key, horse_df_selected_key, score_name in [
+        ("dam_id", "dam_id", "dam_sibling_score"),
+        ("sire_id", "sire_id", "sire_sibling_score"),
+        ("siredam_id", "siredam_id", "siredam_cousin_score"),
+        ("siresire_id", "siresire_id", "siresire_cousin_score"),
+        ("dam_id", "siredam_id", "siredam_auntuncle_score"),
+        ("sire_id", "siresire_id", "siresire_auntuncle_score"),
+    ]:
+        pedigree_charts(horse_df, horse_df_key, horse_df_selected_key, score_name)
 
 
 if __name__ == "__main__":
