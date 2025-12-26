@@ -99,16 +99,9 @@ def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
 
 
 def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: str, title: str) -> None:
-    fig = px.histogram(
-        horse_df,
-        x=column,
-        nbins=50,
-        opacity=0.7,
-    )
+    fig = px.histogram(horse_df, x=column, nbins=50, opacity=0.7)
 
-    fig.add_vline(
-        x=horse_df_selected[column].item(), line_dash="dash", line_color="red", annotation_position="top right"
-    )
+    fig.add_vline(x=horse_df_selected[column], line_dash="dash", line_color="red")
 
     fig.update_layout(xaxis_title=column, yaxis_title="Count", bargap=0.1)
 
