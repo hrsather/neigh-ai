@@ -9,13 +9,7 @@ from scipy.stats import percentileofscore
 
 from neigh_ai.feature_extraction.races import RaceModel
 
-st.title("Horses")
-
-st.sidebar.header("Filters")
-category = st.sidebar.selectbox(
-    "Select category",
-    ["A", "B", "C"],
-)
+TABLE_KEY = "horse_table"
 
 
 # Cache the data loading so it's only executed once
@@ -25,9 +19,29 @@ def load_race_model():
     return race_model
 
 
-race_model = load_race_model()
-race_df = race_model.race_df
-horse_df = race_model.horse_df
+# TODO: Analytics page. Show performance with no pedigree and all.
+def main() -> None:
+    st.title("Horses")
+
+    st.sidebar.header("Filters")
+    # category = st.sidebar.selectbox(
+    #     "Select category",
+    #     ["A", "B", "C"],
+    # )
+    race_model = load_race_model()
+    pprint_df(race_model.horse_df, TABLE_KEY, race_model)
+
+    show_hide_horse_info(race_model)
+
+
+def show_hide_horse_info(race_model) -> None:
+    state = st.session_state.get(TABLE_KEY, {})
+    rows = state.get("selection", {}).get("rows", [])
+
+    if rows:
+        display(race_model, rows)
+    else:
+        st.write("_Click a row above to see details here_")
 
 
 def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_races: int) -> None:
@@ -105,7 +119,7 @@ def plot_hist(df: pd.DataFrame, column: str, horse_id: str, idx: int, title: str
         st.plotly_chart(fig, width="stretch")
 
 
-def pprint_df(df: pd.DataFrame, key: str) -> None:
+def pprint_df(df: pd.DataFrame, key: str, race_model) -> None:
     st.dataframe(
         df[
             [
@@ -123,16 +137,9 @@ def pprint_df(df: pd.DataFrame, key: str) -> None:
     )
 
 
-table_key = "horse_table"
-pprint_df(horse_df, table_key)
+def display(race_model: RaceModel, rows) -> None:
+    horse_df = race_model.horse_df
 
-horse_name = "Please select a horse from the table by clicking the check box"
-
-state = st.session_state.get(table_key, {})
-rows = state.get("selection", {}).get("rows", [])
-
-
-def display(horse_df_selected: pd.DataFrame) -> None:
     idx = rows[0]
     horse_df_selected = horse_df.iloc[idx]
     st.subheader(horse_df_selected["horse_name"])
@@ -156,7 +163,7 @@ def display(horse_df_selected: pd.DataFrame) -> None:
     )
 
     plot_race_scatter(
-        df=race_df,
+        df=race_model.race_df,
         horse_racing_api_id=horse_df_selected["horse_racing_api_id"],
         model=race_model.avg_race_speed_model,
         num_races=int(horse_df.iloc[idx]["num_races"]),
@@ -216,7 +223,7 @@ def display(horse_df_selected: pd.DataFrame) -> None:
         ):
             st.subheader(clean_name)
             assert np.isclose(horse_df.iloc[idx][f"avg_{column}"], np.mean(pedigree_df["race_score"]))
-            pprint_df(pedigree_df, key=column)
+            pprint_df(df=pedigree_df, key=column, race_model=race_model)
 
     # Dam Siblings
     pedigree_charts(
@@ -262,8 +269,5 @@ def display(horse_df_selected: pd.DataFrame) -> None:
     )
 
 
-# TODO: Analytics page. Show performance with no pedigree and all.
-if rows:
-    display(horse_df)
-else:
-    st.write("_Click a row above to see details here_")
+if __name__ == "__main__":
+    main()
