@@ -36,18 +36,19 @@ def main() -> None:
 
 def show_hide_horse_info(race_model) -> None:
     state = st.session_state.get(TABLE_KEY, {})
-    rows = state.get("selection", {}).get("rows", [])
 
-    if rows:
-        display(race_model, rows)
+    if state.get("selection", {}).get("rows", []):
+        display(race_model)
     else:
         st.write("_Click a row above to see details here_")
 
 
-def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_races: int) -> None:
+def plot_race_scatter(race_df: pd.DataFrame, horse_df_selected, model) -> None:
+    horse_racing_api_id: str = horse_df_selected["horse_racing_api_id"]
+    num_races: int = int(horse_df_selected["num_races"])
     fig = go.Figure()
 
-    df_other = df[df["horse_racing_api_id"] != horse_racing_api_id]
+    df_other = race_df[race_df["horse_racing_api_id"] != horse_racing_api_id]
     fig.add_trace(
         go.Scattergl(
             x=df_other["distance_meters"],
@@ -61,7 +62,7 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_rac
     )
 
     # Scatter for selected horse
-    horse_df_selected = df[df["horse_racing_api_id"] == horse_racing_api_id]
+    horse_df_selected = race_df[race_df["horse_racing_api_id"] == horse_racing_api_id]
     fig.add_trace(
         go.Scattergl(
             x=horse_df_selected["distance_meters"],
@@ -75,7 +76,7 @@ def plot_race_scatter(df: pd.DataFrame, horse_racing_api_id: str, model, num_rac
     )
 
     # Add predictions
-    df_sorted = df.sort_values("distance_meters")
+    df_sorted = race_df.sort_values("distance_meters")
     X = df_sorted["distance_meters"].to_numpy().reshape(-1, 1)
     y_pred = model.predict(X)
     fig.add_trace(
@@ -106,10 +107,7 @@ def plot_hist(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame, column: s
     )
 
     fig.add_vline(
-        x=horse_df.loc[horse_df["horse_racing_api_id"] == horse_df_selected["horse_racing_api_id"], column].item(),
-        line_dash="dash",
-        line_color="red",
-        annotation_position="top right",
+        x=horse_df_selected[column].item(), line_dash="dash", line_color="red", annotation_position="top right"
     )
 
     fig.update_layout(xaxis_title=column, yaxis_title="Count", bargap=0.1)
@@ -136,13 +134,7 @@ def pprint_df(df: pd.DataFrame, key: str, race_model) -> None:
     )
 
 
-def display(race_model: RaceModel, rows) -> None:
-    horse_df = race_model.horse_df
-
-    idx = rows[0]
-    horse_df_selected = horse_df.iloc[idx]
-    st.subheader(horse_df_selected["horse_name"])
-
+def show_tables(horse_df: pd.DataFrame, horse_df_selected: pd.DataFrame) -> None:
     col1, col2 = st.columns(2)
 
     col1.metric(
@@ -157,13 +149,19 @@ def display(race_model: RaceModel, rows) -> None:
     col2.metric("Lifetime winnings", f"${int(horse_df_selected['total_prize_money']):,}")
     col2.metric("Avg winnings per race", f"${int(np.exp(horse_df_selected['log_avg_prize_money'])):,}")
 
+
+def display(race_model: RaceModel) -> None:
+    horse_df = race_model.horse_df
+    horse_df_selected = horse_df.iloc[0]
+
+    st.subheader(horse_df_selected["horse_name"])
+
+    show_tables(horse_df, horse_df_selected)
+
     plot_hist(horse_df, horse_df_selected, column="race_score", title="Race score")
 
     plot_race_scatter(
-        df=race_model.race_df,
-        horse_racing_api_id=horse_df_selected["horse_racing_api_id"],
-        model=race_model.avg_race_speed_model,
-        num_races=int(horse_df_selected["num_races"]),
+        race_df=race_model.race_df, horse_df_selected=horse_df_selected, model=race_model.avg_race_speed_model
     )
 
     st.subheader("Performance Features (by percentile and distribution)")
