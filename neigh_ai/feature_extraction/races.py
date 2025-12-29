@@ -14,10 +14,12 @@ class RaceModel:
         self,
         race_results_path: str = "/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv",
         pedigree_info_path: str = "/Users/hayden/Downloads/racing_api_horses_202512181100.csv",
-        load_precomputed: bool = True,
+        yearling_info_path: str = "/Users/hayden/Downloads/yearling_data_202512271425.csv",
+        load_precomputed: bool = False,
     ) -> None:
         self._race_results_path = Path(race_results_path)
         self._pedigree_info_path = Path(pedigree_info_path)
+        self._yearling_info_path = Path(yearling_info_path)
 
         with open("configs.yaml") as f:
             config = yaml.safe_load(f)
@@ -40,12 +42,75 @@ class RaceModel:
             with open("avg_race_speed_model.pkl", "wb") as f:
                 pickle.dump(self.avg_race_speed_model, f)
 
+    def get_pedigree_df(self) -> pd.DataFrame:
+        pedigree_df = (
+            pd.read_csv(self._pedigree_info_path)
+            .assign(horse_name=lambda df: df["horse_name"].str.replace(r"\s*\([A-Z]{2,3}\)$", "", regex=True))[
+                ["racing_api_id", "horse_name", "sire_name", "sire_id", "dam_name", "dam_id"]
+            ]
+            .drop_duplicates(subset=["horse_name"])
+        )
+
+        yearling_df = (
+            pd.read_csv(self._yearling_info_path, dtype={"hip": str, "covering_sire": str, "photo_link": str})
+            .drop_duplicates(subset=["name"])
+            .rename(columns={"name": "horse_name_temp"})
+            # Merge racing api id
+            .merge(
+                pedigree_df[["horse_name", "racing_api_id"]],
+                left_on="horse_name_temp",
+                right_on="horse_name",
+                how="left",
+            )
+            .rename(columns={"racing_api_id": "horse_racing_api_id"})
+            # Merge dam info
+            .merge(
+                pedigree_df[["horse_name", "racing_api_id"]],
+                left_on="dam",
+                right_on="horse_name",
+                how="left",
+                suffixes=("", "_dam"),
+            )
+            .rename(columns={"racing_api_id": "dam_id", "horse_name": "dam_name"})
+            # Merge sire info
+            .merge(
+                pedigree_df[["horse_name", "racing_api_id"]],
+                left_on="sire",
+                right_on="horse_name",
+                how="left",
+                suffixes=("", "_sire"),
+            )
+            .rename(
+                columns={
+                    "racing_api_id": "sire_id",
+                    "horse_name": "sire_name",
+                    "horse_name_temp": "horse_name",
+                }
+            )
+            .astype({"sale_id": "Int64"})
+        )[["sire_id", "dam_id", "horse_name", "sale_id", "sire_name", "dam_name", "hip", "horse_racing_api_id"]]
+
+        # print(yearling_df[yearling_df["sale_id"] == 34])
+        # print(yearling_df[yearling_df["sale_id"] == 34]["sire_name"].value_counts())
+        # print(pedigree_df["horse_name"].unique()[:20])  # sample
+        # print(yearling_df["horse_name"].unique()[:20])  # sample
+
+        pedigree_df = pedigree_df.rename(columns={"racing_api_id": "horse_racing_api_id"})
+
+        # Remove yearling rows already represented in pedigree_df
+        yearling_df = yearling_df[~yearling_df["horse_racing_api_id"].isin(pedigree_df["horse_racing_api_id"])]
+
+        return pd.concat([pedigree_df, yearling_df], ignore_index=True, sort=False)
+
     @property
     def model_cols(self) -> list[str]:
         ps_features: list[str] = []
-        for col in list(set(self.horse_df.columns) - set(self.not_model_features)):
-            num_na_rows = self.horse_df[col].isna().sum()
-            if num_na_rows > 0.5 * len(self.horse_df):
+        # consider only rows where race_score is not NaN
+        df = self.horse_df[self.horse_df["race_score"].notna()]
+
+        for col in set(df.columns) - set(self.not_model_features):
+            num_na_rows = df[col].isna().sum()
+            if num_na_rows > 0.5 * len(df):
                 continue
             ps_features.append(col)
         return ps_features
@@ -128,38 +193,51 @@ class RaceModel:
             )
         )
 
-        self.horse_df = self._add_pedigree_stats()
+        self._add_pedigree_stats()
 
     def _get_pedigree_info(self):
-        horse_df = self.horse_df.merge(
-            pd.read_csv(self._pedigree_info_path)[["racing_api_id", "sire_id", "dam_id", "horse_name"]],
-            left_on="horse_racing_api_id",
-            right_on="racing_api_id",
-            how="left",
-        ).assign(
+        pedigree_df = self.get_pedigree_df()
+
+        self.horse_df = self.horse_df.merge(pedigree_df, on="horse_racing_api_id", how="left").assign(
             sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False),
             dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False),
-            country=lambda d: d["horse_name"].str.extract(r"\((.*?)\)")[0],
             horse_name=lambda d: d["horse_name"].str.replace(r"\s*\(.*?\)", "", regex=True).str.strip(),
         )
-        id_to_dam_id = horse_df.set_index("horse_racing_api_id")["dam_id"]
-        id_to_sire_id = horse_df.set_index("horse_racing_api_id")["sire_id"]
-        id_to_score = horse_df.set_index("horse_racing_api_id")["race_score"]
-        id_to_name = horse_df.set_index("horse_racing_api_id")["horse_name"]
+
+        # Create a new DataFrame with exactly the columns of self.horse_df
+        new_rows = pedigree_df.copy()
+
+        # Fill any missing columns in horse_df that aren't in pedigree_df
+        for col in self.horse_df.columns:
+            if col not in new_rows.columns:
+                new_rows[col] = pd.NA
+
+        # Reorder columns to match self.horse_df
+        new_rows = new_rows[self.horse_df.columns]
+
+        # Concatenate
+        new_rows = new_rows[~new_rows["horse_racing_api_id"].isin(self.horse_df["horse_racing_api_id"])]
+        self.horse_df = pd.concat([self.horse_df, new_rows], ignore_index=True)
+
+        id_to_dam_id = self.horse_df.dropna(subset=["horse_racing_api_id"]).set_index("horse_racing_api_id")["dam_id"]
+        id_to_sire_id = self.horse_df.dropna(subset=["horse_racing_api_id"]).set_index("horse_racing_api_id")["sire_id"]
+        id_to_score = self.horse_df.dropna(subset=["horse_racing_api_id"]).set_index("horse_racing_api_id")[
+            "race_score"
+        ]
+        id_to_name = self.horse_df.dropna(subset=["horse_racing_api_id"]).set_index("horse_racing_api_id")["horse_name"]
 
         for parent in ["dam", "sire"]:
-            horse_df[f"race_score_{parent}"] = horse_df[f"{parent}_id"].map(id_to_score)
-            horse_df[f"{parent}_name"] = horse_df[f"{parent}_id"].map(id_to_name)
+            self.horse_df[f"race_score_{parent}"] = self.horse_df[f"{parent}_id"].map(id_to_score)
+            self.horse_df[f"{parent}_name"] = self.horse_df[f"{parent}_id"].map(id_to_name)
             for gparent in ["dam", "sire"]:
                 parent_lookup_id = id_to_dam_id if gparent == "dam" else id_to_sire_id
-                horse_df[f"{parent}{gparent}_id"] = horse_df[f"{parent}_id"].map(parent_lookup_id)
+                self.horse_df[f"{parent}{gparent}_id"] = self.horse_df[f"{parent}_id"].map(parent_lookup_id)
 
                 for ggparent in ["dam", "sire"]:
                     parent_lookup_id = id_to_dam_id if ggparent == "dam" else id_to_sire_id
-                    horse_df[f"{parent}{gparent}{ggparent}_id"] = horse_df[f"{parent}{gparent}_id"].map(
+                    self.horse_df[f"{parent}{gparent}{ggparent}_id"] = self.horse_df[f"{parent}{gparent}_id"].map(
                         parent_lookup_id
                     )
-        return horse_df
 
     @classmethod
     def _stat_excluding_self(cls, x, stat: str) -> pd.Series:
@@ -178,36 +256,46 @@ class RaceModel:
                 out[idx] = others.mean()
         return out
 
-    def _add_pedigree_stats(self) -> pd.DataFrame:
-        horse_df = self._get_pedigree_info()
+    def _add_pedigree_stats(self) -> None:
+        self._get_pedigree_info()
 
-        dam_stats = horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
-        sire_stats = horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
+        dam_stats = self.horse_df.groupby("dam_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("dam_")
+        sire_stats = (
+            self.horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
+        )
 
         for stat in ["avg", "max", "min", "std"]:
             for parent in ["dam", "sire"]:
-                horse_df[f"{stat}_{parent}_sibling_score"] = horse_df.groupby(f"{parent}_id")["race_score"].transform(
+                self.horse_df[f"{stat}_{parent}_sibling_score"] = self.horse_df.groupby(f"{parent}_id")[
+                    "race_score"
+                ].transform(
                     lambda x: self._stat_excluding_self(x, stat)  # noqa: B023
                 )
 
                 for gparent in ["dam", "sire"]:
-                    horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = horse_df.groupby(f"{parent}{gparent}_id")[
-                        "race_score"
-                    ].transform(lambda x: self._stat_excluding_self(x, stat))  # noqa: B023
+                    self.horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = self.horse_df.groupby(
+                        f"{parent}{gparent}_id"
+                    )["race_score"].transform(lambda x: self._stat_excluding_self(x, stat))  # noqa: B023
 
                     map_obj = dam_stats if gparent == "dam" else sire_stats
-                    horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = horse_df[f"{parent}{gparent}_id"].map(
-                        map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"]
-                    )
-
-        return horse_df
+                    self.horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = self.horse_df[
+                        f"{parent}{gparent}_id"
+                    ].map(map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"])
 
     def _fill_race_score_preds(self):
-        X = self.horse_df[self.model_cols].fillna(0)
-        y = self.horse_df["race_score"]
+        # Only keep rows where race_score is not NA
+        X_train = self.horse_df[self.horse_df["race_score"].notna()][self.model_cols].fillna(0)
+        y_train = self.horse_df[self.horse_df["race_score"].notna()]["race_score"]
 
         rf = RandomForestRegressor()
-        rf.fit(X, y)
+        rf.fit(X_train, y_train)
 
-        self.horse_df["race_score_pred"] = rf.predict(X)
+        # Predict for all rows
+        X_all = self.horse_df[self.model_cols].fillna(0)
+        self.horse_df["race_score_pred"] = rf.predict(X_all)
+
+        # Compute difference only where race_score exists
         self.horse_df["race_score_pred_diff"] = self.horse_df["race_score_pred"] - self.horse_df["race_score"]
+
+
+# RaceModel()

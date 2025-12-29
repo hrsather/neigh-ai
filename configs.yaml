@@ -10,7 +10,6 @@ not_model_features:
   - race_score_pred
   - race_score_pred_diff
   - horse_name
-  - country
   - horse_racing_api_id
   - avg_speed_diff
   - avg_g1_finish
@@ -37,3 +36,4 @@ not_model_features:
   - siresire_id
   - siresiredam_id
   - siresiresire_id
+  - hip
