@@ -212,7 +212,6 @@ def pprint_df(df: pd.DataFrame, key: str, race_model: RaceModel, selectable: boo
             "num_races",
             "avg_prize_money",
         ],
-        *race_model.model_cols,
         *[col for col in race_model.ps_features if col != "log_avg_prize_money"],
         "race_score_pred_diff",
     ]
