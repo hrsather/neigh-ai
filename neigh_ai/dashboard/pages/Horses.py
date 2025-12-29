@@ -14,8 +14,8 @@ FILTER_KENNELAND_01_2026 = "Kenneland January 2026"
 
 # Cache the data loading so it's only executed once
 @st.cache_data
-def load_race_model():
-    race_model = RaceModel()
+def load_race_model(load_precomputed: bool):
+    race_model = RaceModel(load_precomputed=load_precomputed)
     return race_model
 
 
@@ -27,7 +27,7 @@ def main() -> None:
         [NO_FILTER, FILTER_KENNELAND_01_2026],
     )
 
-    race_model = load_race_model()
+    race_model = load_race_model(load_precomputed=True)
 
     horse_df_filtered = race_model.horse_df
     if filter_str == FILTER_KENNELAND_01_2026:

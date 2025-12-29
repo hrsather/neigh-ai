@@ -88,12 +88,8 @@ class RaceModel:
                 }
             )
             .astype({"sale_id": "Int64"})
+            .dropna(subset=["horse_name"])
         )[["sire_id", "dam_id", "horse_name", "sale_id", "sire_name", "dam_name", "hip", "horse_racing_api_id"]]
-
-        # print(yearling_df[yearling_df["sale_id"] == 34])
-        # print(yearling_df[yearling_df["sale_id"] == 34]["sire_name"].value_counts())
-        # print(pedigree_df["horse_name"].unique()[:20])  # sample
-        # print(yearling_df["horse_name"].unique()[:20])  # sample
 
         pedigree_df = pedigree_df.rename(columns={"racing_api_id": "horse_racing_api_id"})
 
@@ -198,10 +194,14 @@ class RaceModel:
     def _get_pedigree_info(self):
         pedigree_df = self.get_pedigree_df()
 
-        self.horse_df = self.horse_df.merge(pedigree_df, on="horse_racing_api_id", how="left").assign(
-            sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False),
-            dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False),
-            horse_name=lambda d: d["horse_name"].str.replace(r"\s*\(.*?\)", "", regex=True).str.strip(),
+        self.horse_df = (
+            self.horse_df.merge(pedigree_df, on="horse_racing_api_id", how="left")
+            .assign(
+                sire_id=lambda d: d["sire_id"].str.replace("sir", "hrs", regex=False),
+                dam_id=lambda d: d["dam_id"].str.replace("dam", "hrs", regex=False),
+                horse_name=lambda d: d["horse_name"].str.replace(r"\s*\(.*?\)", "", regex=True).str.strip(),
+            )
+            .dropna(subset=["horse_name"])
         )
 
         # Create a new DataFrame with exactly the columns of self.horse_df
@@ -296,6 +296,3 @@ class RaceModel:
 
         # Compute difference only where race_score exists
         self.horse_df["race_score_pred_diff"] = self.horse_df["race_score_pred"] - self.horse_df["race_score"]
-
-
-# RaceModel()
