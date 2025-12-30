@@ -90,7 +90,7 @@ def filter_data(category: str, X, y):
 
 
 def get_data_preds(category: str) -> dict[str, Any]:
-    race_model = load_race_model(load_precomputed=False)
+    race_model = load_race_model(load_precomputed=True)
 
     X = race_model.horse_df[race_model.horse_df["race_score"].notna()][race_model.model_cols]
     y = race_model.horse_df[race_model.horse_df["race_score"].notna()]["race_score"]

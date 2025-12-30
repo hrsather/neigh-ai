@@ -27,7 +27,7 @@ def main() -> None:
         [NO_FILTER, FILTER_KENNELAND_01_2026],
     )
 
-    race_model = load_race_model(load_precomputed=False)
+    race_model = load_race_model(load_precomputed=True)
 
     horse_df_filtered = race_model.horse_df
     if filter_str == FILTER_KENNELAND_01_2026:
