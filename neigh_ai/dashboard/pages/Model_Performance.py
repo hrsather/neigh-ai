@@ -52,8 +52,7 @@ def load_data_preds(category: str) -> dict[str, Any]:
         return pickle.load(f)
 
 
-def filter_data(category: str, X, y):
-    print(X.columns)
+def filter_data(category: str, X: pd.DataFrame, y: pd.Series):
     if category == FULL_PEDIGREE_HORSES:
         mask = (
             X[
@@ -119,7 +118,7 @@ def get_data_preds(category: str) -> dict[str, Any]:
     return data
 
 
-def metrics_table(y_test, y_pred, y_train) -> None:
+def metrics_table(y_test: pd.Series, y_pred: pd.Series, y_train: pd.Series) -> None:
     col1, col2 = st.columns(2)
     me_mean = mean_absolute_error(y_test, np.full_like(y_test, y_train.mean()))
     me_model = mean_absolute_error(y_test, y_pred)
@@ -127,7 +126,7 @@ def metrics_table(y_test, y_pred, y_train) -> None:
     col2.metric("MAE - Mean baseline (less is better)", f"{me_mean:.3f}")
 
 
-def correlations_table(X, y, importance) -> None:
+def correlations_table(X: pd.Series, y: pd.Series, importance: pd.Series) -> None:
     correlations = X.corrwith(y).rename("correlation_to_y")
     importances = pd.Series(importance, index=X.columns, name="rf_importance")
     feature_table = (
@@ -145,7 +144,7 @@ def correlations_table(X, y, importance) -> None:
     st.dataframe(feature_table, hide_index=True)
 
 
-def percentage_table(y_test, y_pred) -> None:
+def percentage_table(y_test: pd.Series, y_pred: pd.Series) -> None:
     df = pd.DataFrame({"y_true": y_test, "y_pred": y_pred})
     # Define percentiles
     fractions = [50, 25, 10, 5, 1]
@@ -178,7 +177,7 @@ def percentage_table(y_test, y_pred) -> None:
     st.dataframe(table, hide_index=True)
 
 
-def plot_preds_vs_gt(y_test, y_pred) -> None:
+def plot_preds_vs_gt(y_test: pd.Series, y_pred: pd.Series) -> None:
     # Create scatter plot
     fig = go.Figure()
 
