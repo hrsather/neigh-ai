@@ -32,7 +32,6 @@ class RaceModel:
             self.race_df = pd.read_pickle("race_df.pkl")
             with open("avg_race_speed_model.pkl", "rb") as f:
                 self.avg_race_speed_model = pickle.load(f)
-            return
         else:
             self._get_dfs()
             self._fill_race_score_preds()
@@ -92,6 +91,9 @@ class RaceModel:
         )[["sire_id", "dam_id", "horse_name", "sale_id", "sire_name", "dam_name", "hip", "horse_racing_api_id"]]
 
         pedigree_df = pedigree_df.rename(columns={"racing_api_id": "horse_racing_api_id"})
+
+        # TODO: Remove when more sales!
+        yearling_df = yearling_df[yearling_df["sale_id"] == 34]
 
         # Remove yearling rows already represented in pedigree_df
         yearling_df = yearling_df[~yearling_df["horse_racing_api_id"].isin(pedigree_df["horse_racing_api_id"])]
@@ -286,6 +288,8 @@ class RaceModel:
         # Only keep rows where race_score is not NA
         X_train = self.horse_df[self.horse_df["race_score"].notna()][self.model_cols].fillna(0)
         y_train = self.horse_df[self.horse_df["race_score"].notna()]["race_score"]
+
+        assert y_train.isna().sum() == 0, "y_train still has NaNs!"
 
         rf = RandomForestRegressor()
         rf.fit(X_train, y_train)

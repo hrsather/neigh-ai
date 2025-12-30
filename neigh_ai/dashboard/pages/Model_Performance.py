@@ -33,7 +33,7 @@ def main() -> None:
         [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
     )
 
-    load_precomputed = True
+    load_precomputed = False
     data = load_data_preds(category) if load_precomputed else get_data_preds(category)
 
     metrics_table(data["y_test"], data["y_pred"], data["y_train"])
@@ -90,10 +90,10 @@ def filter_data(category: str, X, y):
 
 
 def get_data_preds(category: str) -> dict[str, Any]:
-    race_model = load_race_model(load_precomputed=True)
+    race_model = load_race_model(load_precomputed=False)
 
-    X = race_model.horse_df[race_model.model_cols]
-    y = race_model.horse_df["race_score"]
+    X = race_model.horse_df[race_model.horse_df["race_score"].notna()][race_model.model_cols]
+    y = race_model.horse_df[race_model.horse_df["race_score"].notna()]["race_score"]
 
     X, y = filter_data(category, X, y)
 
