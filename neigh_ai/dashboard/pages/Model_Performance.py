@@ -53,15 +53,16 @@ def load_data_preds(category: str) -> dict[str, Any]:
 
 
 def filter_data(category: str, X, y):
+    print(X.columns)
     if category == FULL_PEDIGREE_HORSES:
         mask = (
             X[
                 [
-                    "avg_sire_sibling_score",
-                    "avg_siredam_cousin_score",
-                    "avg_siredam_auntuncle_score",
-                    "avg_siresire_auntuncle_score",
-                    "avg_siresire_cousin_score",
+                    "mean_sire_sibling_score",
+                    "mean_siredam_cousin_score",
+                    "mean_siredam_auntuncle_score",
+                    "mean_siresire_auntuncle_score",
+                    "mean_siresire_cousin_score",
                 ]
             ]
             .isna()
@@ -73,11 +74,11 @@ def filter_data(category: str, X, y):
         mask = (
             X[
                 [
-                    "avg_sire_sibling_score",
-                    "avg_siredam_cousin_score",
-                    "avg_siredam_auntuncle_score",
-                    "avg_siresire_auntuncle_score",
-                    "avg_siresire_cousin_score",
+                    "mean_sire_sibling_score",
+                    "mean_siredam_cousin_score",
+                    "mean_siredam_auntuncle_score",
+                    "mean_siresire_auntuncle_score",
+                    "mean_siresire_cousin_score",
                 ]
             ]
             .isna()
@@ -90,7 +91,7 @@ def filter_data(category: str, X, y):
 
 
 def get_data_preds(category: str) -> dict[str, Any]:
-    race_model = load_race_model(load_precomputed=True)
+    race_model = load_race_model(load_precomputed=False)
 
     X = race_model.horse_df[race_model.horse_df["race_score"].notna()][race_model.model_cols]
     y = race_model.horse_df[race_model.horse_df["race_score"].notna()]["race_score"]

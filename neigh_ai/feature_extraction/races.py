@@ -36,6 +36,7 @@ class RaceModel:
             self._get_dfs()
             self._fill_race_score_preds()
 
+            # Save as pkls for future load_precomputed
             self.horse_df.to_pickle("horse_df.pkl")
             self.race_df.to_pickle("race_df.pkl")
             with open("avg_race_speed_model.pkl", "wb") as f:
@@ -44,11 +45,9 @@ class RaceModel:
     def get_pedigree_df(self) -> pd.DataFrame:
         pedigree_df = (
             pd.read_csv(self._pedigree_info_path)
-            .assign(horse_name=lambda df: df["horse_name"].str.replace(r"\s*\([A-Z]{2,3}\)$", "", regex=True))[
-                ["racing_api_id", "horse_name", "sire_name", "sire_id", "dam_name", "dam_id"]
-            ]
+            .assign(horse_name=lambda df: df["horse_name"].str.replace(r"\s*\([A-Z]{2,3}\)$", "", regex=True))
             .drop_duplicates(subset=["horse_name"])
-        )
+        )[["racing_api_id", "horse_name", "sire_name", "sire_id", "dam_name", "dam_id"]]
 
         yearling_df = (
             pd.read_csv(self._yearling_info_path, dtype={"hip": str, "covering_sire": str, "photo_link": str})
@@ -103,7 +102,6 @@ class RaceModel:
     @property
     def model_cols(self) -> list[str]:
         ps_features: list[str] = []
-        # consider only rows where race_score is not NaN
         df = self.horse_df[self.horse_df["race_score"].notna()]
 
         for col in set(df.columns) - set(self.not_model_features):
@@ -153,10 +151,12 @@ class RaceModel:
             # .query("7 <= distance_furlongs <= 13")
         )
 
+        # Warning: Potential model leakage. Acceptable risk because it's so regularized. White line on graph
         self.avg_race_speed_model = RandomForestRegressor(max_depth=3).fit(
             self.race_df["distance_meters"].to_numpy().reshape(-1, 1), self.race_df["speed"].to_numpy()
         )
 
+        # Get Performance Score
         self.horse_df: pd.DataFrame = (
             self.race_df.assign(
                 predicted_speed=lambda df: self.avg_race_speed_model.predict(
@@ -235,12 +235,6 @@ class RaceModel:
                 parent_lookup_id = id_to_dam_id if gparent == "dam" else id_to_sire_id
                 self.horse_df[f"{parent}{gparent}_id"] = self.horse_df[f"{parent}_id"].map(parent_lookup_id)
 
-                for ggparent in ["dam", "sire"]:
-                    parent_lookup_id = id_to_dam_id if ggparent == "dam" else id_to_sire_id
-                    self.horse_df[f"{parent}{gparent}{ggparent}_id"] = self.horse_df[f"{parent}{gparent}_id"].map(
-                        parent_lookup_id
-                    )
-
     @classmethod
     def _stat_excluding_self(cls, x, stat: str) -> pd.Series:
         out = pd.Series(index=x.index, dtype=float)
@@ -254,7 +248,7 @@ class RaceModel:
                 out[idx] = others.std()
             elif stat == "std":
                 out[idx] = others.min()
-            elif stat == "avg":
+            elif stat == "mean":
                 out[idx] = others.mean()
         return out
 
@@ -266,13 +260,11 @@ class RaceModel:
             self.horse_df.groupby("sire_id")["race_score"].agg(["mean", "max", "min", "std"]).add_prefix("sire_")
         )
 
-        for stat in ["avg", "max", "min", "std"]:
+        for stat in ["mean", "max", "min", "std"]:
             for parent in ["dam", "sire"]:
                 self.horse_df[f"{stat}_{parent}_sibling_score"] = self.horse_df.groupby(f"{parent}_id")[
                     "race_score"
-                ].transform(
-                    lambda x: self._stat_excluding_self(x, stat)  # noqa: B023
-                )
+                ].transform(lambda x, stat=stat: self._stat_excluding_self(x, stat))
 
                 for gparent in ["dam", "sire"]:
                     self.horse_df[f"{stat}_{parent}{gparent}_cousin_score"] = self.horse_df.groupby(
@@ -282,14 +274,12 @@ class RaceModel:
                     map_obj = dam_stats if gparent == "dam" else sire_stats
                     self.horse_df[f"{stat}_{parent}{gparent}_auntuncle_score"] = self.horse_df[
                         f"{parent}{gparent}_id"
-                    ].map(map_obj[f"{gparent}_{stat if stat != 'avg' else 'mean'}"])
+                    ].map(map_obj[f"{gparent}_{stat}"])
 
     def _fill_race_score_preds(self):
         # Only keep rows where race_score is not NA
         X_train = self.horse_df[self.horse_df["race_score"].notna()][self.model_cols].fillna(0)
         y_train = self.horse_df[self.horse_df["race_score"].notna()]["race_score"]
-
-        assert y_train.isna().sum() == 0, "y_train still has NaNs!"
 
         rf = RandomForestRegressor()
         rf.fit(X_train, y_train)

@@ -27,7 +27,7 @@ def main() -> None:
         [NO_FILTER, FILTER_KENNELAND_01_2026],
     )
 
-    race_model = load_race_model(load_precomputed=True)
+    race_model = load_race_model(load_precomputed=False)
 
     horse_df_filtered = race_model.horse_df
     if filter_str == FILTER_KENNELAND_01_2026:
@@ -283,8 +283,8 @@ def pedigree_charts(
         f"Max={percentileofscore(horse_df['race_score'].dropna(), horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f}%"
     ):
         st.subheader(clean_name)
-        if not pd.isna(horse_df_selected[f"avg_{new_column_name}"]):
-            assert np.isclose(horse_df_selected[f"avg_{new_column_name}"], np.mean(relatives_df["race_score"]))
+        if not pd.isna(horse_df_selected[f"mean_{new_column_name}"]):
+            assert np.isclose(horse_df_selected[f"mean_{new_column_name}"], np.mean(relatives_df["race_score"]))
         pprint_df(df=relatives_df, key=new_column_name, race_model=race_model, selectable=False)
 
 
