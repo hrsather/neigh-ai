@@ -279,7 +279,7 @@ def pedigree_charts(
         return
     with st.expander(
         f"{clean_name}: "
-        f"Avg={percentileofscore(horse_df['race_score'].dropna(), horse_df_selected[f'avg_{new_column_name}'], kind='rank'):.0f}%, "
+        f"Avg={percentileofscore(horse_df['race_score'].dropna(), horse_df_selected[f'mean_{new_column_name}'], kind='rank'):.0f}%, "
         f"Max={percentileofscore(horse_df['race_score'].dropna(), horse_df_selected[f'max_{new_column_name}'], kind='rank'):.0f}%"
     ):
         st.subheader(clean_name)

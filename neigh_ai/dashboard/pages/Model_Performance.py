@@ -28,13 +28,13 @@ def main() -> None:
     st.title("Model Performance")
     st.sidebar.header("Filters")
 
-    category = st.sidebar.selectbox(
+    filter_str = st.sidebar.selectbox(
         "Select Filter",
         [NO_FILTER, FULL_PEDIGREE_HORSES, NO_PEDIGREE_HORSES],
     )
 
     load_precomputed = False
-    data = load_data_preds(category) if load_precomputed else get_data_preds(category)
+    data = load_data_preds(filter_str) if load_precomputed else get_data_preds(filter_str)
 
     metrics_table(data["y_test"], data["y_pred"], data["y_train"])
 
@@ -47,13 +47,13 @@ def main() -> None:
     correlations_table(data["X"], data["y"], data["importance"])
 
 
-def load_data_preds(category: str) -> dict[str, Any]:
-    with open(f"model_performance_data_{category}.pkl", "rb") as f:
+def load_data_preds(filter_str: str) -> dict[str, Any]:
+    with open(f"model_performance_data_{filter_str}.pkl", "rb") as f:
         return pickle.load(f)
 
 
-def filter_data(category: str, X: pd.DataFrame, y: pd.Series):
-    if category == FULL_PEDIGREE_HORSES:
+def filter_data(filter_str: str, X: pd.DataFrame, y: pd.Series) -> tuple[pd.DataFrame, pd.Series]:
+    if filter_str == FULL_PEDIGREE_HORSES:
         mask = (
             X[
                 [
@@ -69,7 +69,7 @@ def filter_data(category: str, X: pd.DataFrame, y: pd.Series):
         )
         X = X[~mask]
         y = y[~mask]
-    elif category == NO_PEDIGREE_HORSES:
+    elif filter_str == NO_PEDIGREE_HORSES:
         mask = (
             X[
                 [
@@ -89,13 +89,13 @@ def filter_data(category: str, X: pd.DataFrame, y: pd.Series):
     return X, y
 
 
-def get_data_preds(category: str) -> dict[str, Any]:
+def get_data_preds(filter_str: str) -> dict[str, pd.DataFrame | pd.Series]:
     race_model = load_race_model(load_precomputed=False)
 
     X = race_model.horse_df[race_model.horse_df["race_score"].notna()][race_model.model_cols]
     y = race_model.horse_df[race_model.horse_df["race_score"].notna()]["race_score"]
 
-    X, y = filter_data(category, X, y)
+    X, y = filter_data(filter_str, X, y)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -112,7 +112,7 @@ def get_data_preds(category: str) -> dict[str, Any]:
         "importance": rf.feature_importances_,
     }
 
-    with open(f"model_performance_data_{category}.pkl", "wb") as f:
+    with open(f"model_performance_data_{filter_str}.pkl", "wb") as f:
         pickle.dump(data, f)
 
     return data
@@ -178,7 +178,6 @@ def percentage_table(y_test: pd.Series, y_pred: pd.Series) -> None:
 
 
 def plot_preds_vs_gt(y_test: pd.Series, y_pred: pd.Series) -> None:
-    # Create scatter plot
     fig = go.Figure()
 
     fig.add_trace(

@@ -1,6 +1,7 @@
 performance_score_features:
   - avg_speed_diff
   - avg_g1_finish
+  - max_g1_finish
   - avg_g2_finish
   - avg_g3_finish
   - log_avg_prize_money
@@ -15,6 +16,7 @@ not_model_features:
   - avg_g1_finish
   - avg_g2_finish
   - avg_g3_finish
+  - max_g1_finish
   - log_avg_prize_money
   - avg_prize_money
   - total_prize_money
