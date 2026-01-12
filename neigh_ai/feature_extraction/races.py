@@ -169,14 +169,12 @@ class RaceModel:
                 num_races=("horse_racing_api_id", "size"),
                 avg_speed_diff=("speed_diff", "mean"),
                 total_prize_money=("prize_money", "sum"),
-                max_g1_finish=("g1_finish", "max"),
                 avg_g1_finish=("g1_finish", "mean"),
                 avg_g2_finish=("g2_finish", "mean"),
                 avg_g3_finish=("g3_finish", "mean"),
             )
             .query("1 < total_prize_money")
             .assign(
-                max_g1_finish=lambda df: df["max_g1_finish"].fillna(0),
                 avg_g1_finish=lambda df: df["avg_g1_finish"].fillna(0),
                 avg_g2_finish=lambda df: np.fmax(df["avg_g1_finish"], df["avg_g2_finish"]).fillna(0),
                 avg_g3_finish=lambda df: np.fmax(df["avg_g2_finish"], df["avg_g3_finish"]).fillna(0),
