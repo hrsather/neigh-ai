@@ -90,7 +90,7 @@ def filter_data(filter_str: str, X: pd.DataFrame, y: pd.Series) -> tuple[pd.Data
 
 
 def get_data_preds(filter_str: str) -> dict[str, pd.DataFrame | pd.Series]:
-    race_model = load_race_model(load_precomputed=False)
+    race_model = load_race_model(load_precomputed=True)
 
     X = race_model.horse_df[race_model.horse_df["race_score"].notna()][race_model.model_cols]
     y = race_model.horse_df[race_model.horse_df["race_score"].notna()]["race_score"]

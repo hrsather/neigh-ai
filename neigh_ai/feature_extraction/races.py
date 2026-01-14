@@ -12,9 +12,9 @@ from sklearn.ensemble import RandomForestRegressor
 class RaceModel:
     def __init__(
         self,
-        race_results_path: str = "/Users/hayden/Downloads/racing_api_horse_results_202512181056.csv",
-        pedigree_info_path: str = "/Users/hayden/Downloads/racing_api_horses_202512181100.csv",
-        yearling_info_path: str = "/Users/hayden/Downloads/yearling_data_202512271425.csv",
+        race_results_path: str = "/Users/hayden/Downloads/racing_api_horse_results_202601131957.csv",
+        pedigree_info_path: str = "/Users/hayden/Downloads/racing_api_horses_202601131959.csv",
+        yearling_info_path: str = "/Users/hayden/Downloads/yearling_data_202601131959.csv",
         load_precomputed: bool = False,
     ) -> None:
         self._race_results_path = Path(race_results_path)
@@ -129,6 +129,25 @@ class RaceModel:
     def _get_dfs(self) -> None:
         self.race_df: pd.DataFrame = (
             pd.read_csv(self._race_results_path)
+            .drop(
+                columns=[
+                    "id",
+                    "race_date",
+                    "age_band",
+                    "draw",
+                    "starting_price_decimal",
+                    "trainer_name",
+                    "scraped_at",
+                    "race_class",
+                    "horse_weight_lbs",
+                    "official_rating",
+                    "overall_beaten_lengths",
+                    "beaten_lengths",
+                    "horse_sex",
+                    "jockey_claim_lbs",
+                ],
+                errors="ignore",
+            )
             .assign(
                 horse_racing_api_id=lambda df: df["horse_racing_api_id"].astype(str),
                 distance_meters=lambda df: pd.to_numeric(df["distance_yards"] * 0.9144, errors="coerce"),
